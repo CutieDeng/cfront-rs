@@ -10,10 +10,13 @@ pub enum TokenType <'a> {
     Operator (&'a str ), 
 
     Identifier (&'a str ), 
+    NumberLiteral(&'a str, Option<&'a str>),
+
     IntegerLiteral (&'a str, Option<&'a str>), 
     FloatLiteral (&'a str ), 
-    StringLiteral (&'a str ), 
-    CharLiteral (&'a str ), 
+
+    StringLiteral (&'a str, bool ), 
+    CharLiteral (&'a str, bool ), 
     Keyword (Keyword ), 
 
 }

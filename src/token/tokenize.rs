@@ -22,8 +22,7 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
     let mut lidx: Option<usize> = None; 
     enum NormalState<'a> {
         Identifier, 
-        Number(bool), 
-        PrefixNumber(&'a str),
+        Number(Option<&'a str>), 
     }
     let mut normal_state = NormalState::Identifier; 
     let mut ans = Vec::new(); 
@@ -48,22 +47,20 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
                 }
                 QuotingState::Single(l) => {
                     if *c == '\'' {
-                        ans.push(Token {
-                            token_type: TokenType::CharLiteral(&input[l+1..*i]), 
-                            line, 
-                            column, 
-                        }); 
+                        ans.push(Token { token_type: TokenType::CharLiteral(&input[l+1..*i], true), line, column, }); 
                         quoting_state = QuotingState::None; 
-                    } 
+                    } else if *c == '\n' {
+                        ans.push(Token { token_type: TokenType::CharLiteral(&input[l+1..*i], false), line, column, }); 
+                        quoting_state = QuotingState::None; 
+                    }
                     break 'scope; 
                 }
                 QuotingState::Double(l) => {
                     if *c == '"' {
-                        ans.push(Token {
-                            token_type: TokenType::StringLiteral(&input[l+1..*i]), 
-                            line, 
-                            column, 
-                        }); 
+                        ans.push(Token { token_type: TokenType::StringLiteral(&input[l+1..*i], true), line, column, }); 
+                        quoting_state = QuotingState::None; 
+                    } else if *c == '\n' {
+                        ans.push(Token { token_type: TokenType::StringLiteral(&input[l+1..*i], false), line, column, }); 
                         quoting_state = QuotingState::None; 
                     } 
                     break 'scope; 
@@ -113,11 +110,13 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
                     }
                     if c.is_ascii_punctuation() {
                         let mut i = true; 
-                        if *c == '.' {
-                            if let NormalState::Number(false) = normal_state {
+                        if *c == '.' { 
+                            if let NormalState::Number(_) = normal_state {
                                 i = false; 
-                                normal_state = NormalState::Number(true); 
                             } 
+                        }
+                        if *c == '$' {
+                            i = false; 
                         }
                         if i {
                             should_put = true; 
@@ -134,17 +133,9 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
                                     ans.push(Token { token_type: TokenType::Identifier(s), line: last_line, column: last_column, }); 
                                 } 
                             }
-                            NormalState::Number(has_point) => {
+                            NormalState::Number(prefix) => {
                                 let s = &input[l..*i]; 
-                                if has_point {
-                                    ans.push(Token { token_type: TokenType::FloatLiteral(s), line: last_line, column: last_column, }); 
-                                } else {
-                                    ans.push(Token { token_type: TokenType::IntegerLiteral(s, None), line: last_line, column: last_column, }); 
-                                }
-                            }
-                            NormalState::PrefixNumber(p) => {
-                                let s = &input[l..*i]; 
-                                ans.push(Token { token_type: TokenType::IntegerLiteral(s, Some(p)), line: last_line, column: last_column, }); 
+                                ans.push(Token { token_type: TokenType::NumberLiteral(s, prefix), line: last_line, column: last_column }); 
                             }
                         }
                         lidx = None;
@@ -155,21 +146,25 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
                         break 'scope;  
                     }
                     if c.is_ascii_punctuation() {
-                        punt = true;  
-                    } else {
+                        punt = true; 
+                        if *c == '$' {
+                            punt = false;
+                        }
+                    } 
+                    if !punt {
                         lidx = Some(*i); 
                         if c.is_digit(10) {
-                            normal_state = NormalState::Number(false); 
+                            normal_state = NormalState::Number(None); 
                             if *c == '0' {
                                 let p = char_indices.get(idx + 1); 
                                 match p {
                                     Some((_, 'x')) | Some((_, 'X')) | Some((_, 'b')) | Some((_, 'B')) => {
-                                        normal_state = NormalState::PrefixNumber(&input[*i..i+2]); 
+                                        normal_state = NormalState::Number(Some(&input[*i..i+2])); 
                                         just_ignore = 1; 
                                         break 'scope; 
                                     }
                                     _ => {
-                                        normal_state = NormalState::PrefixNumber(&input[*i..i+1]);
+                                        normal_state = NormalState::Number(Some(&input[*i..i+1])); 
                                     }
                                 } 
                             }
@@ -232,6 +227,7 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
                             Some((_, '=')) => {
                                 ans.push(Token { token_type: Operator(&input[*i..i+2]), line, column: column + 1 });
                                 just_ignore = 1; 
+                                println!("here");
                                 break 'scope;  
                             }
                             _ => (), 
@@ -258,7 +254,9 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
                         } 
                         ans.push(Token { token_type: Operator(&input[*i..i+1]), line, column }); 
                     }
-                    _ => unreachable!(),
+                    _ => {
+                        ans.push(Token { token_type: Operator(&input[*i..i+1]), line, column }); 
+                    }
                 }
             }
         }
