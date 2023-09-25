@@ -227,7 +227,6 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
                             Some((_, '=')) => {
                                 ans.push(Token { token_type: Operator(&input[*i..i+2]), line, column: column + 1 });
                                 just_ignore = 1; 
-                                println!("here");
                                 break 'scope;  
                             }
                             _ => (), 
