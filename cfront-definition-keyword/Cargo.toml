@@ -2,6 +2,9 @@
 name = "cfront-definition-keyword"
 version = "0.1.0"
 edition = "2021"
+description = "Token definition of c program language for Rust" 
+license = "MIT" 
+repository = "https://github.com/CutieDeng/cfront-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
