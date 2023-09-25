@@ -115,7 +115,7 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
                                 i = false; 
                             } 
                         }
-                        if *c == '$' {
+                        if *c == '$' || *c == '@' || *c == '_' { 
                             i = false; 
                         }
                         if i {
@@ -147,7 +147,7 @@ pub fn tokenize(input: &str) -> Vec<Token<'_>> {
                     }
                     if c.is_ascii_punctuation() {
                         punt = true; 
-                        if *c == '$' {
+                        if *c == '$' || *c == '@' || *c == '_' { 
                             punt = false;
                         }
                     } 
