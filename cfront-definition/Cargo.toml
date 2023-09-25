@@ -9,4 +9,4 @@ repository = "https://github.com/CutieDeng/cfront-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cfront-definition-keyword = "*"
+cfront-definition-keyword = "0.1.*"
