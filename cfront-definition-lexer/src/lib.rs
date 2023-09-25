@@ -1,6 +1,9 @@
 use cfront_definition::{token::{Token, TokenType}, Keyword};
 use cfront_definition_keyword::automaton;
 
+pub use cfront_definition_keyword::keyword as keyword; 
+pub use cfront_definition::token as token; 
+
 pub fn analyze(input: &str) -> Vec<Token<'_>> {
     let char_indices: Vec<_> = input.char_indices().collect(); 
     let char_indices = &char_indices[..]; 
