@@ -2,7 +2,9 @@ use std::fs::File;
 use std::env::args;
 use std::io::Read;
 
-use cfront::{token::{tokenize::tokenize, Token}, TokenType};
+use cfront::TokenType;
+use cfront::token::Token;
+use cfront::token::tokenize::tokenize;
 
 pub fn main() {
     let mut a = args(); 
