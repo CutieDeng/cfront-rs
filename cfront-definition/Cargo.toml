@@ -1,11 +1,12 @@
 [package]
-name = "cfront-definition-keyword"
-version = "0.1.1"
+name = "cfront-definition"
+version = "0.1.0"
 edition = "2021"
-description = "Token definition for C program language"
+description = "Keyword token definition for C program language" 
 license = "MIT" 
 repository = "https://github.com/CutieDeng/cfront-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+cfront-definition-keyword = "*"
