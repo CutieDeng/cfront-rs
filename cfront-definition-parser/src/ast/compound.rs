@@ -1,4 +1,4 @@
-use cfront_definition::token::{Token, TokenType};
+use cfront_definition::{token::{Token, TokenType}, Keyword};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)] 
 pub enum BinaryExpressionType {
@@ -14,6 +14,20 @@ pub enum BinaryExpressionType {
     LogicalOr, 
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)] 
+pub enum UnaryExpressionType {
+    Plus, 
+    Minus, 
+    BitwiseNot, 
+    LogicalNot, 
+    Dereference, 
+    Address,  
+    Increment, 
+    Decrement, 
+    SizeofType, 
+    SizeofExpression,
+}
+
 #[allow(unreachable_code)]
 #[derive(Debug, PartialEq, Eq, Clone)] 
 pub enum ExpressionType <'a> {
@@ -24,6 +38,7 @@ pub enum ExpressionType <'a> {
     ParimaryExp, 
     ParenthesisExp(Box<Expression<'a>>), 
     PostfixExp(PostfixExpression<'a>), 
+    UnaryExp(UnaryExpressionType, Box<Expression<'a>>), 
 }
 
 #[allow(unreachable_code)]
@@ -218,6 +233,63 @@ pub fn parse_post_expression<'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expr
 } 
 
 pub fn parse_unary_expression<'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
-    let _ = input_tokens; 
-    unimplemented!()
+    let first = input_tokens.first().ok_or(())?; 
+    let ft = &first.token_type;
+    let ans = match ft {
+        TokenType::Operator("++") | TokenType::Operator("--") => {
+            let plus = ft == &TokenType::Operator("++"); 
+            let (exp, rest) = parse_unary_expression(&input_tokens[1..])?; 
+            let idx = input_tokens.len() - rest.len(); 
+            let expression_type = match plus {
+                true => ExpressionType::UnaryExp(UnaryExpressionType::Increment, Box::new(exp)), 
+                false => ExpressionType::UnaryExp(UnaryExpressionType::Decrement, Box::new(exp)), 
+            }; 
+            (Expression {
+                expression_type, 
+                token_slice: &input_tokens[..=idx], 
+            }, rest)
+        }
+        TokenType::Keyword(Keyword::Sizeof) => {
+            let second = input_tokens.get(1).ok_or(())?; 
+            let st = &second.token_type; 
+            _ = st;
+            let (r, i) = parse_unary_expression(&input_tokens[1..])?; 
+            let idx = input_tokens.len() - i.len(); 
+            let expression_type = ExpressionType::UnaryExp(UnaryExpressionType::SizeofExpression, Box::new(r)); 
+            (Expression {
+                expression_type, 
+                token_slice: &input_tokens[..=idx], 
+            }, i) 
+        }
+        | TokenType::Operator("+") 
+        | TokenType::Operator("-") 
+        | TokenType::Operator("~") 
+        | TokenType::Operator("!") 
+        | TokenType::Operator("*") 
+        | TokenType::Operator("&") 
+        => {
+            let (e, input) = parse_cast_expression(&input_tokens[1..])?;  
+            let idx = input_tokens.len() - input.len(); 
+            let t = match ft {
+                TokenType::Operator("+") => UnaryExpressionType::Plus, 
+                TokenType::Operator("-") => UnaryExpressionType::Minus, 
+                TokenType::Operator("~") => UnaryExpressionType::BitwiseNot, 
+                TokenType::Operator("!") => UnaryExpressionType::LogicalNot, 
+                TokenType::Operator("*") => UnaryExpressionType::Dereference, 
+                TokenType::Operator("&") => UnaryExpressionType::Address, 
+                _ => unreachable!(), 
+            }; 
+            let expression_type = ExpressionType::UnaryExp(t, Box::new(e)); 
+            (Expression {
+                expression_type,
+                token_slice: &input_tokens[..=idx],
+            }, input)
+        }
+        _ => parse_post_expression(input_tokens)?, 
+    }; 
+    return Ok(ans);
+}
+
+fn parse_cast_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
+    todo!("{:?}", &input_tokens)
 }
