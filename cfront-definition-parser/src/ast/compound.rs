@@ -29,6 +29,20 @@ impl BinaryExpressionType {
             BinaryExpressionType::LogicalOr => Some(BinaryExpressionType::LogicalAnd), 
         } 
     }
+    pub fn downer(self) -> Option<Self> {
+        match self {
+            BinaryExpressionType::Multiplicative => Some(BinaryExpressionType::Additive), 
+            BinaryExpressionType::Additive => Some(BinaryExpressionType::Shift), 
+            BinaryExpressionType::Shift => Some(BinaryExpressionType::Relational), 
+            BinaryExpressionType::Relational => Some(BinaryExpressionType::Equality), 
+            BinaryExpressionType::Equality => Some(BinaryExpressionType::And), 
+            BinaryExpressionType::And => Some(BinaryExpressionType::ExclusiveOr), 
+            BinaryExpressionType::ExclusiveOr => Some(BinaryExpressionType::InclusiveOr), 
+            BinaryExpressionType::InclusiveOr => Some(BinaryExpressionType::LogicalAnd), 
+            BinaryExpressionType::LogicalAnd => Some(BinaryExpressionType::LogicalOr), 
+            BinaryExpressionType::LogicalOr => None, 
+        }  
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)] 
@@ -123,6 +137,12 @@ pub fn parse_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expressi
         }
         first = true; 
     }
+    if ans.is_empty() {
+        return Err(()); 
+    }
+    if ans.len() == 1 {
+        return Ok((ans.pop().unwrap(), r)); 
+    } 
     return Ok((Expression {
         expression_type: ExpressionType::CommaExpression(ans), 
         token_slice: &input_tokens[..input_tokens.len() - r.len()], 
@@ -155,7 +175,8 @@ pub fn parse_assignment_expression <'a> (input_tokens: &'a [Token<'a>]) -> Resul
 }
 
 pub fn parse_conditional_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
-    let (f, rst) = parse_expression_level(input_tokens, BinaryExpressionType::LogicalOr)?;
+    // let (f, rst) = parse_expression_level(input_tokens, BinaryExpressionType::LogicalOr)?;
+    let (f, rst) = parse_expression_level(input_tokens, BinaryExpressionType::Multiplicative)?;
     let Some(nxt) = rst.first() else {
         return Ok((f, rst)); 
     }; 
@@ -181,7 +202,7 @@ pub fn parse_conditional_expression <'a> (input_tokens: &'a [Token<'a>]) -> Resu
 }
 
 pub fn parse_expression_level <'a> (input_tokens: &'a [Token<'a>], label: BinaryExpressionType) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
-    let upper = label.upper(); 
+    let upper = label.downer(); 
     let p: Box<dyn Fn(&'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()>> = match upper {
         Some(upper) => {
             let k = move |i| {
