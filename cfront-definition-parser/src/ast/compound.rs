@@ -14,6 +14,23 @@ pub enum BinaryExpressionType {
     LogicalOr, 
 }
 
+impl BinaryExpressionType {
+    pub fn upper(self) -> Option<Self> {
+        match self {
+            BinaryExpressionType::Multiplicative => None, 
+            BinaryExpressionType::Additive => Some(BinaryExpressionType::Multiplicative), 
+            BinaryExpressionType::Shift => Some(BinaryExpressionType::Additive), 
+            BinaryExpressionType::Relational => Some(BinaryExpressionType::Shift), 
+            BinaryExpressionType::Equality => Some(BinaryExpressionType::Relational), 
+            BinaryExpressionType::And => Some(BinaryExpressionType::Equality), 
+            BinaryExpressionType::ExclusiveOr => Some(BinaryExpressionType::And), 
+            BinaryExpressionType::InclusiveOr => Some(BinaryExpressionType::ExclusiveOr), 
+            BinaryExpressionType::LogicalAnd => Some(BinaryExpressionType::InclusiveOr), 
+            BinaryExpressionType::LogicalOr => Some(BinaryExpressionType::LogicalAnd), 
+        } 
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)] 
 pub enum UnaryExpressionType {
     Plus, 
@@ -82,27 +99,59 @@ pub fn operator_type(t: &TokenType) -> Option<BinaryExpressionType> {
 }
 
 pub fn parse_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
-    let mut idx = 0; 
-    let mut now_type = None; 
-    now_type = None; 
-    while let Some(i) = input_tokens.get(idx) {
-        dbg!(i); 
-        'scope : {
-            match now_type {
-                None => {
-
-                }
-                Some(BinaryExpressionType::Multiplicative) => {
-
-                } 
-                _ => return Err(()), 
-            }
-            break 'scope; 
-        }
-        idx += 1; 
-    }
-    unimplemented!()
+    return parse_expression_level(input_tokens, BinaryExpressionType::LogicalOr); 
 } 
+
+pub fn parse_conditional_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
+    
+    todo!()
+}
+
+pub fn parse_expression_level <'a> (input_tokens: &'a [Token<'a>], label: BinaryExpressionType) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
+    let upper = label.upper(); 
+    let p: Box<dyn Fn(&'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()>> = match upper {
+        Some(upper) => {
+            let k = move |i| {
+                parse_expression_level(i, upper) 
+            };
+            Box::new(k) 
+        }
+        None => {
+            Box::new(parse_cast_expression)
+        }
+    };
+    let (nxt, mut rst) = p(input_tokens)?;
+    let mut current = vec![(nxt, TokenType::Operator(""))]; 
+    loop {
+        let nxt_op = rst.first(); 
+        match nxt_op {
+            Some(op) => {
+                let t = operator_type(&op.token_type); 
+                match t {
+                    Some(level) => {
+                        if level < label {
+                            break ;                    
+                        } else{
+                            let Ok((second, r)) = p(&rst[1..]) else { break }; 
+                            rst = r; 
+                            current.push((second, op.token_type.clone())); 
+                        }
+                    },
+                    None => break, 
+                }
+            }
+            None => break, 
+        }
+    }
+    if current.len() == 1 {
+        return Ok((current.pop().unwrap().0, rst)); 
+    } else {
+        return Ok((Expression {
+            expression_type: ExpressionType::BinaryExps(current, label), 
+            token_slice: &input_tokens[..=input_tokens.len() - rst.len()], 
+        }, rst)); 
+    }
+}
 
 pub fn parse_primirary_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
     let first = input_tokens.first().ok_or(())?; 
@@ -290,6 +339,6 @@ pub fn parse_unary_expression<'a> (input_tokens: &'a [Token<'a>]) -> Result<(Exp
     return Ok(ans);
 }
 
-fn parse_cast_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
-    todo!("{:?}", &input_tokens)
+pub fn parse_cast_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
+    return parse_unary_expression(input_tokens);
 }
