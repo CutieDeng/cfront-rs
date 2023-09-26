@@ -6,4 +6,5 @@ members = [
     "cfront-definition",
     "cfront-definition-keyword", 
     "cfront-definition-lexer", 
+    "cfront-definition-parser",
 ]
