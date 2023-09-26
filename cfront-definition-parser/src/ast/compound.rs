@@ -56,6 +56,8 @@ pub enum ExpressionType <'a> {
     ParenthesisExp(Box<Expression<'a>>), 
     PostfixExp(PostfixExpression<'a>), 
     UnaryExp(UnaryExpressionType, Box<Expression<'a>>), 
+    AssignmentExpression(Box<Expression<'a>>, TokenType<'a>, Box<Expression<'a>>), 
+    CommaExpression(Vec<Expression<'a>>),
 }
 
 #[allow(unreachable_code)]
@@ -99,12 +101,83 @@ pub fn operator_type(t: &TokenType) -> Option<BinaryExpressionType> {
 }
 
 pub fn parse_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
-    return parse_expression_level(input_tokens, BinaryExpressionType::LogicalOr); 
+    let mut first = false; 
+    let mut r = input_tokens; 
+    let mut ans = Vec::new(); 
+    loop {
+        if first {
+            let Some(comma) = r.first() else { break }; 
+            if comma.token_type != TokenType::Operator(",") {
+                break; 
+            } 
+            r = &r[1..]; 
+        }
+        let a = parse_assignment_expression(r);
+        match a {
+            Ok((e, rst)) => {
+                r = rst;
+                ans.push(e); 
+            }
+            // check if you don't allow trailing comma 
+            Err(_) => break, 
+        }
+        first = true; 
+    }
+    return Ok((Expression {
+        expression_type: ExpressionType::CommaExpression(ans), 
+        token_slice: &input_tokens[..input_tokens.len() - r.len()], 
+    }, r)); 
 } 
 
+pub fn parse_assignment_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
+    let u = parse_unary_expression(input_tokens); 
+    'mat: {
+        match u {
+            Ok((unary_exp, rst)) => {
+                let Some(as_op) = rst.first() else { break 'mat }; 
+                match as_op.token_type {
+                    TokenType::Operator(x) if x != "!=" && x != "==" && x.ends_with("=") => {
+                        let (second, rst) = parse_assignment_expression(&rst[1..])?; 
+                        let idx = input_tokens.len() - rst.len(); 
+                        let expression_type = ExpressionType::AssignmentExpression(Box::new(unary_exp), TokenType::Operator(x), Box::new(second)); 
+                        return Ok((Expression {
+                            expression_type, 
+                            token_slice: &input_tokens[..idx], 
+                        }, rst)); 
+                    }
+                    _ => break 'mat, 
+                }
+            },
+            Err(_) => break 'mat, 
+        }
+    }
+    parse_conditional_expression(input_tokens)
+}
+
 pub fn parse_conditional_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
-    
-    todo!()
+    let (f, rst) = parse_expression_level(input_tokens, BinaryExpressionType::LogicalOr)?;
+    let Some(nxt) = rst.first() else {
+        return Ok((f, rst)); 
+    }; 
+    match nxt.token_type {
+        TokenType::Operator("?") => {
+            let (e2, rst) = parse_expression(&rst[1..])?; 
+            let nxt = rst.first().ok_or(())?; 
+            match nxt.token_type {
+                TokenType::Operator(":") => {
+                    let (e3, rst) = parse_conditional_expression(&rst[1..])?; 
+                    let idx = input_tokens.len() - rst.len(); 
+                    let expression_type = ExpressionType::ConditionalExp(Box::new([f, e2, e3])); 
+                    return Ok((Expression {
+                        expression_type, 
+                        token_slice: &input_tokens[..idx], 
+                    }, rst)); 
+                }
+                _ => return Err(()), 
+            } 
+        }
+        _ => return Ok((f, rst)), 
+    }
 }
 
 pub fn parse_expression_level <'a> (input_tokens: &'a [Token<'a>], label: BinaryExpressionType) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
@@ -148,7 +221,7 @@ pub fn parse_expression_level <'a> (input_tokens: &'a [Token<'a>], label: Binary
     } else {
         return Ok((Expression {
             expression_type: ExpressionType::BinaryExps(current, label), 
-            token_slice: &input_tokens[..=input_tokens.len() - rst.len()], 
+            token_slice: &input_tokens[..input_tokens.len() - rst.len()], 
         }, rst)); 
     }
 }
@@ -166,7 +239,7 @@ pub fn parse_primirary_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result
                 TokenType::Parenthesis { is_left: false } => {
                     (Expression {
                         expression_type: ExpressionType::ParenthesisExp(Box::new(exp)), 
-                        token_slice: &input_tokens[..=idx], 
+                        token_slice: &input_tokens[..idx], 
                     }, rest) 
                 }
                 _ => return Err(()), 
@@ -295,7 +368,7 @@ pub fn parse_unary_expression<'a> (input_tokens: &'a [Token<'a>]) -> Result<(Exp
             }; 
             (Expression {
                 expression_type, 
-                token_slice: &input_tokens[..=idx], 
+                token_slice: &input_tokens[..idx], 
             }, rest)
         }
         TokenType::Keyword(Keyword::Sizeof) => {
@@ -307,7 +380,7 @@ pub fn parse_unary_expression<'a> (input_tokens: &'a [Token<'a>]) -> Result<(Exp
             let expression_type = ExpressionType::UnaryExp(UnaryExpressionType::SizeofExpression, Box::new(r)); 
             (Expression {
                 expression_type, 
-                token_slice: &input_tokens[..=idx], 
+                token_slice: &input_tokens[..idx], 
             }, i) 
         }
         | TokenType::Operator("+") 
@@ -331,7 +404,7 @@ pub fn parse_unary_expression<'a> (input_tokens: &'a [Token<'a>]) -> Result<(Exp
             let expression_type = ExpressionType::UnaryExp(t, Box::new(e)); 
             (Expression {
                 expression_type,
-                token_slice: &input_tokens[..=idx],
+                token_slice: &input_tokens[..idx],
             }, input)
         }
         _ => parse_post_expression(input_tokens)?, 
