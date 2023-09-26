@@ -23,18 +23,19 @@ pub enum ExpressionType <'a> {
     ConditionalExp(Box<[Expression<'a>; 3]>), 
     ParimaryExp, 
     ParenthesisExp(Box<Expression<'a>>), 
+    PostfixExp(PostfixExpression<'a>), 
 }
 
 #[allow(unreachable_code)]
 #[derive(Debug, PartialEq, Eq, Clone)] 
 pub enum PostfixExpression <'a> {
     ArgumentCall(!), 
-    VoidCall,
+    VoidCall(Box<Expression<'a>>),
     Index(Box<Expression<'a>>, Box<Expression<'a>>), 
     Member(Box<Expression<'a>>, Token<'a>), 
     PointerMember(Box<Expression<'a>>, Token<'a>), 
-    Increment, 
-    Decrement,  
+    Increment(Box<Expression<'a>>), 
+    Decrement(Box<Expression<'a>>),  
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)] 
@@ -135,21 +136,88 @@ pub fn parse_primirary_expression <'a> (input_tokens: &'a [Token<'a>]) -> Result
 
 pub fn parse_post_expression<'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &[Token<'a>]), ()> {
     let (mut r, mut input) = parse_primirary_expression(input_tokens)?; 
+    let mut idx; 
     'post_parse: loop {
         let first = input.first(); 
         let Some(first) = first else {
             return Ok((r, input)); 
         }; 
+        idx = input_tokens.len() - input.len(); 
         let ttype = &first.token_type; 
         match ttype {
-            TokenType::Parenthesis { is_left: true } => todo!(),
-            TokenType::Bracket { is_left: true } => {
-
+            TokenType::Parenthesis { is_left: true } => {
+                // empty argument check 
+                let second = input.get(1).ok_or(())?; 
+                let stype = &second.token_type; 
+                match stype {
+                    TokenType::Parenthesis { is_left: false } => {
+                        r = Expression {
+                            expression_type: ExpressionType::PostfixExp(PostfixExpression::VoidCall(Box::new(r))),
+                            token_slice: &input_tokens[..idx], 
+                        }; 
+                        input = &input[2..]; 
+                    }
+                    _ => {
+                        unimplemented!("Not support argument call yet ")
+                    }
+                } 
             }
-            TokenType::Operator(_) => todo!(),
-            _ => {} 
-        }
-        break 'post_parse; 
-    }
-    unimplemented!()
+            TokenType::Bracket { is_left: true } => {
+                let (exp, rest) = parse_expression(&input[1..])?; 
+                let second = rest.first().ok_or(())?; 
+                let stype = &second.token_type; 
+                match stype {
+                    TokenType::Bracket { is_left: false } => {
+                        r = Expression {
+                            expression_type: ExpressionType::PostfixExp(PostfixExpression::Index(Box::new(r), Box::new(exp))),
+                            token_slice: &input_tokens[..idx], 
+                        }; 
+                        input = &rest[1..]; 
+                    }
+                    _ => return Err(()), 
+                }
+            }
+            TokenType::Operator("++") | TokenType::Operator("--") => {
+                input = &input[1..]; 
+                idx += 1; 
+                r = Expression {
+                    expression_type: ExpressionType::PostfixExp(match ttype {
+                        TokenType::Operator("++") => PostfixExpression::Increment(Box::new(r)), 
+                        TokenType::Operator("--") => PostfixExpression::Decrement(Box::new(r)), 
+                        _ => unreachable!(), 
+                    }), 
+                    token_slice: &input_tokens[..idx], 
+                }; 
+            } 
+            TokenType::Operator(".") | TokenType::Operator("->") => {
+                let is_ptr = ttype == &TokenType::Operator("->"); 
+                let second = input.get(1); 
+                let Some(second) = second else { 
+                    break 'post_parse; 
+                }; 
+                let stype = &second.token_type; 
+                match stype {
+                    TokenType::Identifier(_) => {
+                        idx += 2; 
+                        input = &input[2..]; 
+                        r = Expression {
+                            expression_type: ExpressionType::PostfixExp(match is_ptr {
+                                true => PostfixExpression::PointerMember(Box::new(r), second.clone()), 
+                                false => PostfixExpression::Member(Box::new(r), second.clone()), 
+                            }), 
+                            token_slice: &input_tokens[..idx], 
+                        };  
+                    }
+                    _ => break 'post_parse, 
+                }
+            } 
+            _ => break 'post_parse, 
+        } 
+    } 
+    return Ok((r, input)); 
 } 
+
+pub fn parse_unary_expression<'a> (input_tokens: &'a [Token<'a>]) -> Result<(Expression<'a>, &'a [Token<'a>]), ()> {
+    let _ = input_tokens; 
+    unimplemented!()
+}
