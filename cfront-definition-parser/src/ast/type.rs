@@ -54,7 +54,7 @@ pub struct EnumeratorList <'a> {
 
 pub struct Enumerator <'a> (pub Token<'a>); 
 
-// pub struct SpecQualiferList<'a> {
-
-// }
-
+pub enum TypeSpec <'a> {
+    RawType ( Token<'a> ),
+    
+}

@@ -9,9 +9,9 @@ pub mod typespecifider;
 pub mod pointer;
 pub mod list;
 pub mod expression;
-pub mod declarator;
 pub mod r#const;
 pub mod r#type;
+pub mod decl;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AstNode <'a> 

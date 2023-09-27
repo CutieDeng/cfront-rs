@@ -1,0 +1,53 @@
+translation_unit : (external_decl)+ 
+external_decl: function_definition | decl
+function_definition: (decl_specs)? declarator (decl_list)? compound_stat 
+decl: decl_specs (init_declarator_list) ;
+decl_list: (decl)+ 
+decl_specs: (storage_class_spec | type_spec | 'const' | 'volatile' )+ 
+storage_class_spec: 'auto'|'register'|'static'|'extern'|'typedef' 
+type_spec: 'void' | 'char' | 'short' | 'int' | 'long' | 'float' | 'double' | 'signed' | 'unsigned' |
+    struct_or_union_spec | enum_spec | id ((typedef_name))
+struct_or_union_spec: ('struct' | 'union') id? ( '{' struct_decl+ '}' )? 
+特别地，id 和其后面的内容不能同时都没有！
+init_declarator_list: (init_declarator ',')+ 
+允许 trailing comma 吗？
+init_declarator: declarator ('=' initializer)? 
+struct_decl: spec_qualifier_list struct_declarator_list ';' 
+spec_qualifier_list: (type_spec | 'const' | 'volatile')+ 
+struct_declarator_list: (struct_declarator ',')+ 
+struct_declarator: declarator? (':' const_exp)? 
+特别地，二者不能同时不存在
+enum_spec: 'enum' id? ('{' enumerator_list '}')? 
+同上，二者至少存其一
+enumerator_list: (enumerator ',')+ 
+enumerator: id ('=' const_exp)? 
+declarator: pointer? direct_declarator
+direct_declarator: id | '(' declarator ')' | direct_declarator ('[' const_exp? ']' | '(' (param_type_list | id_list)? ')')
+pointer: '*' (('const' | 'volatile')+)? pointer? 
+param_type_list: param_list (',' '...')? 
+param_list: (param_decl ',')+ 
+param_decl: decl_specs (declarator | abstract_declarator)?
+id_list: (id ',')+ 
+initializer: assignment_exp | '{' (initializer ',')+ '}' 
+type_name: spec_qualifier_list abstract_declarator? 
+abstract_declarator: pointer? direct_abstract_declarator?
+至少选一
+direct_abstract_declarator: '(' abstract_declarator ')' | direct_abstract_declarator? '[' const_exp? ']' | 
+    direct_abstract_declarator? '(' param_type_list? ')' 
+stat: labeled_stat | exp_stat | compound_stat | selection_stat | iteration_stat | jump_stat 
+labeled_stat: (id | 'case' const_exp | 'default') ':' stat
+exp_stat: exp? ';' 
+compound_stat: '{' decl* stat* '}' 
+selection_stat: 'if' '(' exp ')' stat ( 'else' stat )? | 'switch' '(' exp ')' stat 
+iteration_stat: 'while' '(' exp ')' stat | 'do' stat 'while' '(' exp ')' ; | 'for' '(' exp? ';' exp? ';' exp? ')' stat 
+jump_stat: ('goto' id | 'continue' | 'break' | 'return' exp?) ';' 
+exp: (assignment_exp ',')+
+assignment_exp: conditional_exp | unary_exp assignment_operator assignment_exp 
+assignment_operator	: '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<='
+    | '>>=' | '&=' | '^=' | '|='
+conditional_exp: logical_or_exp ('?' exp ':' conditional_exp)? 
+const_exp: conditional_exp
+logical_or_exp: ......
+cast_exp: unary_exp | '(' type_name ')' cast_exp
+unary_exp: postfix_exp | '++' unary_exp | '--' unary_exp | unary_operator cast_exp | 'sizeof' unary_exp | 'sizeof' '(' type_name ')' 
+argument_exp_list: (assignment_exp ',')+ 

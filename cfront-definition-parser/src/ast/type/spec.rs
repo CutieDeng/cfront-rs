@@ -2,14 +2,6 @@ use cfront_definition::{token::{Token, TokenType}, Keyword};
 
 use crate::{ast::AstNode, Parser};
 
-use super::r#struct::Struct;
-
-pub struct StructSpec <'a> {
-    pub r#struct: Struct, 
-    pub identifier: Option<Token<'a>>, 
-    pub struct_decl_list: !, 
-}
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TypeSpec <'a> {
     RawType ( Token<'a> ),
