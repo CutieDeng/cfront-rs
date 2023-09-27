@@ -1,10 +1,11 @@
 #![feature(never_type)]
 
+use ast::Ast;
 use cfront_definition::token::Token;
 
-pub fn parser(input: &[Token<'_>]) -> Result<(), ()> {
+pub fn parser<'a> (input: &'a [Token<'a>]) -> Result<Ast<'a>, ()> {
     let _ = input; 
-    Ok(())
+    todo!()
 } 
 
 pub mod ast; 
