@@ -13,9 +13,9 @@ pub struct FunctionDefinition <'a> {
 }
 
 impl <'a> Parser<'a> for FunctionDefinition<'a> {
-    type E = (); 
+    type E = ();
 
-    fn parse (tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         todo!()
-    }
+    } 
 }

@@ -14,6 +14,6 @@ pub trait Parser<'parser> : Sized + 'parser {
 
     type E; 
 
-    fn parse (tokens: &'parser [Token<'parser>]) -> Result<(Self, &'parser [Token<'parser>]), <Self as Parser>::E>; 
+    fn parse (stack: &mut Vec<Ast<'parser>>, tokens: &'parser [Token<'parser>]) -> Result<(Self, &'parser [Token<'parser>]), <Self as Parser<'parser>>::E>; 
 
 }

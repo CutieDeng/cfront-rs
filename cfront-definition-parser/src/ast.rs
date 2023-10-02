@@ -3,13 +3,18 @@ pub mod external_decl;
 pub mod function_definition;
 pub mod decl;
 pub mod decl_specs;
-pub mod storage_class_spec;
+pub mod r#struct;
+pub mod r#enum;
+pub mod typename;
+pub mod abstract_declarator;
+pub mod direct_abstract_declarator;
+pub mod pointer;
 
 use std::marker::PhantomData;
 
 use cfront_definition::token::Token;
 
-use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl};
+use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::EnumSpec, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier}};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'a> 
@@ -20,4 +25,9 @@ pub enum AstType <'a> {
     NoImpl(PhantomData<&'a !>), 
     TranslationUnit(TranslationUnit<'a>),
     ExternalDecl(ExternalDecl<'a>),
+    StructOrUnionSpec(StructOrUnionSpec<'a>), 
+    EnumSpec(EnumSpec<'a>),
+    StorageClassSpec(StorageClassSpec<'a>),
+    TypeSpec(TypeSpec<'a>),
+    TypeQualifier(TypeQualifier<'a>),
 }

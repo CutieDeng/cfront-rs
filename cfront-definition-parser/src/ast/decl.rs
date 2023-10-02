@@ -11,11 +11,12 @@ pub struct Decl <'a> {
 }
 
 impl <'a> Parser<'a> for Decl<'a> {
-    type E = (); 
+    type E = ();
 
-    fn parse (tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         todo!()
-    }
+    } 
+
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -24,7 +25,8 @@ pub struct DeclList<'a> (pub Vec<Ast<'a>>);
 impl <'a> Parser<'a> for DeclList<'a> {
     type E = ();
 
-    fn parse (tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         todo!()
     }
+    
 } 
