@@ -101,7 +101,22 @@ impl <'a> Parser<'a> for DeclSpecs<'a> {
     type E = ();
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let mut rst = tokens ;
+        let mut ans = Vec::new(); 
+        loop {
+            let p = DeclSpec::parse(stack, rst); 
+            let Ok(node) = p else {
+                if ans.is_empty() {
+                    return Err(()); 
+                }
+                return Ok((DeclSpecs(ans), rst)); 
+            }; 
+            let len = rst.len(); 
+            rst = node.1; 
+            let len = len - rst.len(); 
+            let node = Ast(AstType::DeclSpec(node.0), &rst[..len]); 
+            ans.push(node); 
+        } 
     }
     
 } 

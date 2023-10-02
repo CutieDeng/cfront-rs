@@ -14,7 +14,7 @@ use std::marker::PhantomData;
 
 use cfront_definition::token::Token;
 
-use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::EnumSpec, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier}};
+use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::EnumSpec, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'a> 
@@ -30,4 +30,5 @@ pub enum AstType <'a> {
     StorageClassSpec(StorageClassSpec<'a>),
     TypeSpec(TypeSpec<'a>),
     TypeQualifier(TypeQualifier<'a>),
+    DeclSpec(DeclSpec<'a>),
 }
