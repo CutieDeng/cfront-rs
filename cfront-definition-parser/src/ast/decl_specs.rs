@@ -16,6 +16,7 @@ pub enum TypeSpec <'a> {
     Raw(Token<'a>),
     StructOrUnionSpec(Box<Ast<'a>>), 
     EnumSpec(Box<Ast<'a>>), 
+    TypedefName(Token<'a>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)] 
@@ -64,7 +65,10 @@ impl <'a> Parser<'a> for DeclSpec<'a> {
                     let len = node.1.len(); 
                     let len = tokens.len() - len; 
                     let node = Ast(AstType::StructOrUnionSpec(node.0), &tokens[..len]); 
-                    return Ok((DeclSpec::TypeSpec(Box::new(node)), rst));  
+                    let node = TypeSpec::StructOrUnionSpec(Box::new(node)); 
+                    let node = Ast(AstType::TypeSpec(node), &tokens[..len]);
+                    let ans = DeclSpec::TypeSpec(Box::new(node)); 
+                    return Ok((ans, rst));  
                 }
             Token { token_type: TokenType::Keyword(k), .. } if 
                 false || k == &Keyword::Enum => {
@@ -73,12 +77,19 @@ impl <'a> Parser<'a> for DeclSpec<'a> {
                     let len = node.1.len(); 
                     let len = tokens.len() - len; 
                     let node = Ast(AstType::EnumSpec(node.0), &tokens[..len]); 
+                    let node = TypeSpec::EnumSpec(Box::new(node)); 
+                    let node = Ast(AstType::TypeSpec(node), &tokens[..len]); 
                     let ans = DeclSpec::TypeSpec(Box::new(node)); 
                     return Ok((ans, rst)); 
                 } 
-            _ => (), 
+            Token { token_type: TokenType::Identifier(_), .. } => {
+                let node = TypeSpec::TypedefName(first.clone()); 
+                let node = Ast(AstType::TypeSpec(node), &tokens[..1]); 
+                let ans = DeclSpec::TypeSpec(Box::new(node)); 
+                return Ok((ans, &tokens[1..])); 
+            }
+            _ => return Err(()),
         }
-        todo!()
     }
 
 } 
