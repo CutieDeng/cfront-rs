@@ -38,6 +38,7 @@ pub enum AstType <'a> {
     TypeSpec(TypeSpec<'a>),
     TypeQualifier(TypeQualifier<'a>),
     DeclSpec(DeclSpec<'a>),
+    DeclSpecs(DeclSpecs<'a>),
     StructDeclList(StructDeclList<'a>),
     Pointer(Pointer<'a>),
     TypeQualifierList(TypeQualifierList<'a>),
