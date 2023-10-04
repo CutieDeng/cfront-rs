@@ -1,8 +1,8 @@
 use cfront_definition::token::{Token, TokenType};
 
-use crate::{Parser, ast::assignment_exp::AssignmentExp};
+use crate::{Parser};
 
-use super::{Ast, AstType};
+use super::{Ast, AstType, exp::AssignmentExp};
 
 #[derive(Debug, PartialEq, Eq, Clone)] 
 pub enum Initializer <'a> {

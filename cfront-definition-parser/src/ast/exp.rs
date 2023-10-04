@@ -1,6 +1,6 @@
 use cfront_definition::{token::{Token, TokenType, self}, Keyword};
 
-use crate::{Parser, ast::{AstType, type_name::TypeName}};
+use crate::{Parser, ast::{AstType, type_name::TypeName, argument_exp_list::ArgumentExpList}};
 
 use super::Ast;
 
@@ -305,15 +305,90 @@ impl <'a> CastExp<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct PostfixExp<'a> {
-    a: &'a !,
+pub enum PostfixExp<'a> {
+    PrimaryExp(Box<Ast<'a>>), 
+    Postfix {
+        postfix_exp: Box<Ast<'a>>, 
+        postfix_op: Token<'a>, 
+        identity: Option<Token<'a>>,
+    }, 
+    FunctionCall {
+        postfix_exp: Box<Ast<'a>>, 
+        args: Vec<Ast<'a>>, 
+    }, 
+    ArraySubscript {
+        postfix_exp: Box<Ast<'a>>, 
+        exp: Box<Ast<'a>>, 
+    }, 
 }
 
 impl <'a> Parser<'a> for PostfixExp<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let mut this; 
+        let mut rst = tokens; 
+        let (p, r) = PrimaryExp::parse(stack, tokens)?; 
+        let p = Ast(AstType::PrimaryExp(p), &rst[..rst.len() - r.len()]); 
+        this = Self::PrimaryExp(Box::new(p));  
+        loop {
+            let f = rst.first().ok_or(())?; 
+            let ft = &f.token_type; 
+            match ft {
+                TokenType::Parenthesis { is_left: true } => {
+                    let a = ArgumentExpList::parse(stack, rst); 
+                    let v; 
+                    match a {
+                        Ok((l, r)) => {
+                            v = l.0; 
+                            rst = r; 
+                        }
+                        Err(_) => {
+                            v = Vec::new();
+                        }
+                    }
+                    let f = rst.first().ok_or(())?; 
+                    let ft = &f.token_type; 
+                    let TokenType::Parenthesis { is_left: false } = ft else { break }; 
+                    let p = Ast(AstType::PostfixExp(this), &tokens[..tokens.len() - rst.len()]); 
+                    this = Self::FunctionCall { postfix_exp: Box::new(p), args: v }; 
+                }
+                TokenType::Bracket { is_left: true } => {
+                    let rs = &rst[1..]; 
+                    let Ok((p, r)) = Exp::parse(stack, rs) else { break }; 
+                    let f = r.first().ok_or(())?; 
+                    let ft = &f.token_type; 
+                    let TokenType::Bracket { is_left: false } = ft else { break }; 
+                    let p = Ast(AstType::Exp(p), &rs[..rs.len() - r.len()]); 
+                    let thi = Ast(AstType::PostfixExp(this), &tokens[..tokens.len() - rst.len()]); 
+                    this = Self::ArraySubscript { postfix_exp: Box::new(thi), exp: Box::new(p) }; 
+                    rst = &r[1..]; 
+                }
+                | TokenType::Operator(".")
+                | TokenType::Operator("->")
+                => {
+                    let Some(i) = rst.get(1) else { break }; 
+                    let it = &i.token_type; 
+                    match it {
+                        TokenType::Identifier(_) => {
+                            let p = Ast(AstType::PostfixExp(this), &tokens[..tokens.len() - rst.len()]); 
+                            this = Self::Postfix { postfix_exp: Box::new(p), postfix_op: f.clone(), identity: Some(i.clone()) }; 
+                            rst = &rst[2..]; 
+                        }
+                        _ => break, 
+                    } 
+                }
+                | TokenType::Operator("++") 
+                | TokenType::Operator("--") 
+                => {
+                    let p = Ast(AstType::PostfixExp(this), &tokens[..tokens.len() - rst.len()]); 
+                    this = Self::Postfix { postfix_exp: Box::new(p), postfix_op: f.clone(), identity: None }; 
+                    rst = &rst[1..];  
+                }
+                _ => break, 
+            }
+        }
+        Ok((this, rst)) 
     }
 } 
 
