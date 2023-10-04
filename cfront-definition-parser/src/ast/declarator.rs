@@ -14,7 +14,28 @@ impl <'a> Parser<'a> for Declarator<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let first = tokens.first().ok_or(())?;
+        let mut rst = tokens;
+        let pointer; 
+        if first.token_type == TokenType::Operator("*") {
+            let Ok(parse) = Declarator::parse(stack, rst) else { return Err(()); }; 
+            let r2 = parse.1; 
+            rst = r2; 
+            let len = tokens.len() - r2.len(); 
+            let t = Ast(AstType::Declarator(parse.0), &tokens[..len]); 
+            pointer = Some(Box::new(t)); 
+        } else {
+            pointer = None; 
+        }
+        let dd = DirectDeclarator::parse(stack, rst)?;
+        let len = rst.len() - dd.1.len(); 
+        let t = Ast(AstType::DirectDeclarator(dd.0), &tokens[..len]); 
+        let declarator = Declarator {
+            pointer, 
+            direct_declarator: Box::new(t), 
+        }; 
+        rst = dd.1; 
+        return Ok((declarator, rst)); 
     }
 }
 
