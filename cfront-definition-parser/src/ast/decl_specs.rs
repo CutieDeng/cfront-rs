@@ -19,11 +19,71 @@ pub enum TypeSpec <'a> {
     TypedefName(Token<'a>),
 }
 
+impl <'a> Parser<'a> for TypeSpec<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        let first = tokens.first().ok_or(())?; 
+        let Token { token_type, .. } = first; 
+        match token_type {
+            | TokenType::Keyword(Keyword::Void)
+            | TokenType::Keyword(Keyword::Char)
+            | TokenType::Keyword(Keyword::Short)
+            | TokenType::Keyword(Keyword::Int) 
+            | TokenType::Keyword(Keyword::Long) 
+            | TokenType::Keyword(Keyword::Float) 
+            | TokenType::Keyword(Keyword::Double) 
+            | TokenType::Keyword(Keyword::Signed) 
+            | TokenType::Keyword(Keyword::Unsigned) => {
+                let node = TypeSpec::Raw(first.clone()); 
+                return Ok((node, &tokens[1..])); 
+            } 
+            | TokenType::Keyword(Keyword::Struct) 
+            | TokenType::Keyword(Keyword::Union) => {
+                let node = r#struct::StructOrUnionSpec::parse(stack, tokens)?; 
+                let rst = node.1 ;
+                let len = tokens.len() - rst.len(); 
+                let node = Ast(AstType::StructOrUnionSpec(node.0), &tokens[..len]); 
+                return Ok((TypeSpec::StructOrUnionSpec(Box::new(node)), rst)); 
+            }
+            | TokenType::Keyword(Keyword::Enum) => {
+                let node = r#enum::EnumSpec::parse(stack, tokens)?; 
+                let rst = node.1; 
+                let len = tokens.len() - rst.len(); 
+                let node = Ast(AstType::EnumSpec(node.0), &tokens[..len]); 
+                return Ok((TypeSpec::EnumSpec(Box::new(node)), rst));  
+            }
+            | TokenType::Identifier(_) => {
+                let node = TypeSpec::TypedefName(first.clone()); 
+                return Ok((node, &tokens[1..])); 
+            }
+            _ => return Err(()), 
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)] 
 pub struct StorageClassSpec <'a> (pub Token<'a> );
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TypeQualifier <'a> (pub Token<'a>); 
+
+impl <'a> Parser<'a> for TypeQualifier<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        let first = tokens.first().ok_or(())?;
+        let Token { token_type, .. } = first; 
+        match token_type {
+            | TokenType::Keyword(Keyword::Const)
+            | TokenType::Keyword(Keyword::Volatile) => {
+                let node = TypeQualifier(first.clone()); 
+                return Ok((node, &tokens[1..])); 
+            }
+            _ => return Err(()), 
+        }
+    }
+}
 
 impl <'a> Parser<'a> for DeclSpec<'a> {
     type E = ();

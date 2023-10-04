@@ -9,12 +9,14 @@ pub mod typename;
 pub mod abstract_declarator;
 pub mod direct_abstract_declarator;
 pub mod pointer;
+pub mod struct_decl;
+pub mod type_qualifier_list;
 
 use std::marker::PhantomData;
 
 use cfront_definition::token::Token;
 
-use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::EnumSpec, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}};
+use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::EnumSpec, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'a> 
@@ -31,4 +33,7 @@ pub enum AstType <'a> {
     TypeSpec(TypeSpec<'a>),
     TypeQualifier(TypeQualifier<'a>),
     DeclSpec(DeclSpec<'a>),
+    StructDeclList(StructDeclList<'a>),
+    Pointer(Pointer<'a>),
+    TypeQualifierList(TypeQualifierList<'a>),
 }

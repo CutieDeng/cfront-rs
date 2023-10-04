@@ -16,7 +16,6 @@ impl <'a> Parser<'a> for Decl<'a> {
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         todo!()
     } 
-
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -28,5 +27,4 @@ impl <'a> Parser<'a> for DeclList<'a> {
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         todo!()
     }
-    
 } 
