@@ -16,12 +16,15 @@ pub mod id_list;
 pub mod param_type_list;
 pub mod declarator;
 pub mod const_exp;
+pub mod init_declarator;
+pub mod assignment_exp;
+pub mod initializer;
 
 use std::marker::PhantomData;
 
 use cfront_definition::token::Token;
 
-use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::{EnumSpec, Enumerator, EnumeratorList}, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::Decl, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList, const_exp::ConstExp, abstract_declarator::{AbstractDeclarator, DirectAbstractDeclarator}};
+use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::{EnumSpec, Enumerator, EnumeratorList}, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::Decl, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList, const_exp::ConstExp, abstract_declarator::{AbstractDeclarator, DirectAbstractDeclarator}, init_declarator::InitDeclarator, initializer::{Initializer, InitializerList}, assignment_exp::AssignmentExp};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'a> 
@@ -54,4 +57,9 @@ pub enum AstType <'a> {
     ConstExp(ConstExp<'a>),
     AbstractDeclarator(AbstractDeclarator<'a>), 
     DirectAbstractDeclarator(DirectAbstractDeclarator<'a>),
+    InitDeclarator(InitDeclarator<'a>), 
+    Initializer(Initializer<'a>),
+    InitializerList(InitializerList<'a>),
+    AssignmentExp(AssignmentExp<'a>), 
 }
+
