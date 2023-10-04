@@ -1,4 +1,4 @@
-use cfront_definition::{token::{Token, TokenType}, Keyword};
+use cfront_definition::{token::{Token, TokenType, self}, Keyword};
 
 use crate::{Parser, ast::{AstType, type_name::TypeName}};
 
@@ -12,7 +12,7 @@ pub struct Exp <'a> {
 impl <'a> Parser<'a> for Exp<'a> {
     type E = (); 
 
-    fn parse (stack: &mut Vec<super::Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         todo!()
     }
 }
@@ -30,7 +30,7 @@ pub enum AssignmentExp<'a> {
 impl <'a> Parser<'a> for AssignmentExp<'a> {
     type E = (); 
 
-    fn parse (stack: &mut Vec<super::Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         
         todo!()
     }
@@ -39,17 +39,78 @@ impl <'a> Parser<'a> for AssignmentExp<'a> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum UnaryExp<'a> {
     PostfixExp(Box<Ast<'a>>),
-    PreInc(Box<Ast<'a>>), 
-    PreDec(Box<Ast<'a>>), 
+    PreExp(Token<'a>, Box<Ast<'a>>),
     UnaryOp(Token<'a>, Box<Ast<'a>>), 
     SizeOfUnaryExp(Box<Ast<'a>>), 
     SizeOfTypeName(Box<Ast<'a>>), 
 }
 
+impl <'a> UnaryExp<'a> {
+    pub fn parse_by_type_name(stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), ()> {
+        let f = tokens.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        let TokenType::Keyword(Keyword::Sizeof) = ft else { return Err(()) }; 
+        let f = tokens.get(1).ok_or(())?; 
+        let ft = &f.token_type; 
+        let TokenType::Parenthesis { is_left: true } = ft else { return Err(()) }; 
+        let r = &tokens[2..]; 
+        let (p, r2) = TypeName::parse(stack, r)?;
+        let f = r2.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        let TokenType::Parenthesis { is_left: false } = ft else { return Err(()) }; 
+        let p = Ast(AstType::TypeName(p), &r[..r.len() - r2.len()]);
+        Ok((Self::SizeOfTypeName(Box::new(p)), r)) 
+    } 
+}
+
 impl <'a> Parser<'a> for UnaryExp<'a> {
     type E = (); 
 
-    fn parse (stack: &mut Vec<super::Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        let f = tokens.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        match ft {
+            | TokenType::Operator("++") 
+            | TokenType::Operator("--") 
+            => {
+                let (p, r) = UnaryExp::parse(stack, &tokens[1..])?;
+                let p = Ast(AstType::UnaryExp(p), &tokens[..tokens.len() - r.len()]); 
+                return Ok((Self::PreExp(f.clone(), Box::new(p)), r)); 
+            },
+            | TokenType::Operator("&") 
+            | TokenType::Operator("*") 
+            | TokenType::Operator("+") 
+            | TokenType::Operator("-") 
+            | TokenType::Operator("~") 
+            | TokenType::Operator("!") 
+            => {
+                let (p, r) = UnaryExp::parse(stack, &tokens[1..])?;
+                let p = Ast(AstType::UnaryExp(p), &tokens[..tokens.len() - r.len()]); 
+                return Ok((Self::UnaryOp(f.clone(), Box::new(p)), r)); 
+            }, 
+            | TokenType::Keyword(Keyword::Sizeof) 
+            => {
+                let rs = &tokens[1..]; 
+                let ue = UnaryExp::parse(stack, rs); 
+                let tn = Self::parse_by_type_name(stack, rs);
+                let select_ue; 
+                match (&ue, &tn) {
+                    (Ok((_, l1)), Ok((_, l2))) => select_ue = l1.len() < l2.len(),
+                    (Ok(_), Err(_)) => select_ue = true, 
+                    (Err(_), Ok(_)) => select_ue = false, 
+                    (Err(_), Err(_)) => return Err(()), 
+                }
+                if select_ue {
+                    let u = ue.unwrap();
+                    let p = Ast(AstType::UnaryExp(u.0), &rs[..rs.len() - u.1.len()]);
+                    return Ok((Self::SizeOfUnaryExp(Box::new(p)), u.1)); 
+                } else { 
+                    let t = tn.unwrap();
+                    return Ok(t); 
+                }
+            }
+            _ => (),
+        }
         todo!()
     }
 } 
@@ -67,7 +128,7 @@ pub enum ConditionalExp<'a> {
 impl <'a> Parser<'a> for ConditionalExp<'a> {
     type E = (); 
 
-    fn parse (stack: &mut Vec<super::Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         todo!()
     }
 } 
@@ -162,7 +223,10 @@ impl <'a> BiExp<'a> {
                 ans.push((p, op));
                 rst = r2; 
             } else {
-
+                let (p, r2) = CastExp::parse(&mut Vec::new(), rst)?; 
+                let p = Ast(AstType::CastExp(p), &rst[..rst.len() - r2.len()]); 
+                ans.push((p, op)); 
+                rst = r2; 
             }
             let Some(f) = rst.first() else { break };
             let ft = &f.token_type; 
@@ -199,6 +263,7 @@ impl <'a> Parser<'a> for CastExp<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        // try both two paths. 
         let u = UnaryExp::parse(stack, tokens);
         let u2 = CastExp::type_cast_parse(stack, tokens); 
         let select_u; 
