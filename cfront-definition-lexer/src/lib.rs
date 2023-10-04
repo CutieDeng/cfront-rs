@@ -200,11 +200,22 @@ pub fn analyze(input: &str) -> Vec<Token<'_>> {
                     '}' => {
                         ans.push(Token { token_type: Brace { is_left: false }, line, column, }); 
                     } 
-                    | '.' | ',' | ';' | '~' | ':' => {
+                    | ',' | ';' | '~' | ':' => {
                         ans.push(Token { token_type: Operator(&input[*i..i+1]), line, column, });  
                     } 
                     // every puntc here can be followed by '=' 
-                    | '<' | '=' | '>' | '+' | '-' | '*' | '/' | '%' | '&' | '^' | '|' | '!' => {
+                    | '.' | '<' | '=' | '>' | '+' | '-' | '*' | '/' | '%' | '&' | '^' | '|' | '!' => {
+                        if *c == '.' {
+                            let (p1, p2) = (char_indices.get(idx + 1), char_indices.get(idx + 2)); 
+                            match (p1, p2) {
+                                (Some((_, '.')), Some((_, '.'))) => {
+                                    ans.push(Token { token_type: Operator(&input[*i..i+3]), line, column: column + 2 });
+                                    just_ignore = 2; 
+                                    break 'scope; 
+                                }
+                                _ => (), 
+                            }
+                        }
                         if *c == '<' {
                             let p = (char_indices.get(idx + 1), char_indices.get(idx + 2)); 
                             match p {
