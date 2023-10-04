@@ -31,10 +31,55 @@ impl <'a> Parser<'a> for AssignmentExp<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        
-        todo!()
+        let c = ConditionalExp::parse(stack, tokens); 
+        let a = AssignmentExp::parse_by_assign(stack, tokens); 
+        let select_c; 
+        match (&c, &a) {
+            (Ok((_, l1)), Ok((_, l2))) => select_c = l1.len() < l2.len(), 
+            (Ok(_), Err(_)) => select_c = true, 
+            (Err(_), Ok(_)) => select_c = false, 
+            (Err(_), Err(_)) => return Err(()), 
+        } 
+        if select_c {
+            let c = c.unwrap(); 
+            let p = Ast(AstType::ConditionalExp(c.0), &tokens[..tokens.len() - c.1.len()]); 
+            Ok((Self::ConditionalExp(Box::new(p)), c.1))
+        } else {
+            let a = a.unwrap(); 
+            let (p, r) = a; 
+            Ok((p, r)) 
+        }
     }
 } 
+
+impl <'a> AssignmentExp<'a> {
+    pub fn parse_by_assign(stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), ()> {
+        let (u, r) = UnaryExp::parse(stack, tokens)?;
+        let f = r.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        let TokenType::Operator(op) = ft else { return Err(()) }; 
+        match *op {
+            | "=" 
+            | "*=" 
+            | "/=" 
+            | "%=" 
+            | "+=" 
+            | "-=" 
+            | "<<=" 
+            | ">>=" 
+            | "&="
+            | "^="
+            | "|="
+            => (), 
+            _ => return Err(()), 
+        }
+        let r2 = &r[1..]; 
+        let (a, r3) = AssignmentExp::parse(stack, r2)?; 
+        let u = Ast(AstType::UnaryExp(u), &tokens[..tokens.len() - r.len()]); 
+        let a = Ast(AstType::AssignmentExp(a), &r2[..r2.len() - r3.len()]); 
+        Ok((Self::Assign { unary_exp: Box::new(u), assignment_op: f.clone(), assignment_exp: Box::new(a) }, r3)) 
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum UnaryExp<'a> {
