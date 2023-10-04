@@ -1,4 +1,8 @@
-use crate::Parser;
+use cfront_definition::{token::{Token, TokenType}, Keyword};
+
+use crate::{Parser, ast::{AstType, type_name::TypeName}};
+
+use super::Ast;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Exp <'a> {
@@ -12,3 +16,224 @@ impl <'a> Parser<'a> for Exp<'a> {
         todo!()
     }
 }
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum AssignmentExp<'a> {
+    ConditionalExp(Box<Ast<'a>>),
+    Assign {
+        unary_exp: Box<Ast<'a>>, 
+        assignment_op: Token<'a>,
+        assignment_exp: Box<Ast<'a>>, 
+    }
+}
+
+impl <'a> Parser<'a> for AssignmentExp<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<super::Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+        
+        todo!()
+    }
+} 
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum UnaryExp<'a> {
+    PostfixExp(Box<Ast<'a>>),
+    PreInc(Box<Ast<'a>>), 
+    PreDec(Box<Ast<'a>>), 
+    UnaryOp(Token<'a>, Box<Ast<'a>>), 
+    SizeOfUnaryExp(Box<Ast<'a>>), 
+    SizeOfTypeName(Box<Ast<'a>>), 
+}
+
+impl <'a> Parser<'a> for UnaryExp<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<super::Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+        todo!()
+    }
+} 
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum ConditionalExp<'a> {
+    Condition {
+        logical_or_exp: Box<Ast<'a>>, 
+        exp: Box<Ast<'a>>, 
+        conditional_exp: Box<Ast<'a>>, 
+    }, 
+    LogicalOrExp(Box<Ast<'a>>), 
+}
+
+impl <'a> Parser<'a> for ConditionalExp<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<super::Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+        todo!()
+    }
+} 
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct BiExp<'a> {
+    pub level: BiOperatorLevel, 
+    pub exps: Vec<(Ast<'a>, Token<'a>)>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord, Copy)]
+pub enum BiOperatorLevel {
+    LogicalOrExp, 
+    LogicalAndExp, 
+    InclusiveOrExp, 
+    ExclusiveOrExp, 
+    AndExp, 
+    EqualityExp, 
+    RelationalExp, 
+    ShiftExp, 
+    AdditiveExp, 
+    MultiplicativeExp,  
+}
+
+impl BiOperatorLevel {
+    pub fn level_up(self) -> Option<Self> {
+        match self {
+            Self::LogicalOrExp => Some(Self::LogicalAndExp), 
+            Self::LogicalAndExp => Some(Self::InclusiveOrExp), 
+            Self::InclusiveOrExp => Some(Self::ExclusiveOrExp), 
+            Self::ExclusiveOrExp => Some(Self::AndExp), 
+            Self::AndExp => Some(Self::EqualityExp), 
+            Self::EqualityExp => Some(Self::RelationalExp), 
+            Self::RelationalExp => Some(Self::ShiftExp), 
+            Self::ShiftExp => Some(Self::AdditiveExp), 
+            Self::AdditiveExp => Some(Self::MultiplicativeExp), 
+            Self::MultiplicativeExp => None, 
+        } 
+    }
+    pub fn level_down(self) -> Option<Self> {
+        match self {
+            Self::LogicalOrExp => None, 
+            Self::LogicalAndExp => Some(Self::LogicalOrExp), 
+            Self::InclusiveOrExp => Some(Self::LogicalAndExp), 
+            Self::ExclusiveOrExp => Some(Self::InclusiveOrExp), 
+            Self::AndExp => Some(Self::ExclusiveOrExp), 
+            Self::EqualityExp => Some(Self::AndExp), 
+            Self::RelationalExp => Some(Self::EqualityExp), 
+            Self::ShiftExp => Some(Self::RelationalExp), 
+            Self::AdditiveExp => Some(Self::ShiftExp), 
+            Self::MultiplicativeExp => Some(Self::AdditiveExp), 
+        }  
+    }
+    pub fn match_operator(self, op: &TokenType) -> bool {
+        match op {
+            TokenType::Operator(op) => match self {
+                Self::LogicalOrExp => *op == "||", 
+                Self::LogicalAndExp => *op == "&&", 
+                Self::InclusiveOrExp => *op == "|", 
+                Self::ExclusiveOrExp => *op == "^", 
+                Self::AndExp => *op == "&", 
+                Self::EqualityExp => *op == "==" || *op == "!=", 
+                Self::RelationalExp => *op == "<" || *op == ">" || *op == "<=" || *op == ">=", 
+                Self::ShiftExp => *op == "<<" || *op == ">>", 
+                Self::AdditiveExp => *op == "+" || *op == "-", 
+                Self::MultiplicativeExp => *op == "*" || *op == "/" || *op == "%",
+            }, 
+            _ => false, 
+        } 
+    }
+}
+
+impl <'a> Parser<'a> for BiExp<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        todo!()
+    }
+}
+
+impl <'a> BiExp<'a> {
+    pub fn parse_impl(tokens: &'a [Token<'a>], level: BiOperatorLevel) -> Result<(Self, &'a [Token<'a>]), ()> {
+        let mut ans = Vec::new(); 
+        let mut op;
+        let mut rst = tokens; 
+        let up = level.level_up();
+        op = Token { token_type: TokenType::Operator(""), line: 0, column: 0 };
+        loop {
+            if let Some(up) = up {
+                let (p, r2) = Self::parse_impl(rst, up)?;
+                let p = Ast(AstType::BiExp(p), &rst[..rst.len() - r2.len()]);
+                ans.push((p, op));
+                rst = r2; 
+            } else {
+
+            }
+            let Some(f) = rst.first() else { break };
+            let ft = &f.token_type; 
+            if level.match_operator(ft) {
+                op = f.clone(); 
+                rst = &rst[1..]; 
+            } else {
+                break; 
+            }
+        }
+        if ans.len() == 1 {
+            let pop = ans.pop().unwrap().0;
+            let p = match pop.0 {
+                AstType::BiExp(p) => p, 
+                _ => unreachable!(), 
+            }; 
+            Ok((p, rst))
+        } else {
+            Ok((Self { level, exps: ans }, rst)) 
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum CastExp<'a> {
+    UnaryExp(Box<Ast<'a>>), 
+    Cast {
+        type_name: Box<Ast<'a>>, 
+        cast_exp: Box<Ast<'a>>, 
+    }
+}
+
+impl <'a> Parser<'a> for CastExp<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        let u = UnaryExp::parse(stack, tokens);
+        let u2 = CastExp::type_cast_parse(stack, tokens); 
+        let select_u; 
+        match (&u, &u2) {
+            (Ok((_, l1)), Ok((_, l2))) => select_u = l1.len() < l2.len(), 
+            (Ok(_), Err(_)) => select_u = true, 
+            (Err(_), Ok(_)) => select_u = false, 
+            (Err(_), Err(_)) => return Err(()), 
+        }
+        if select_u {
+            let u = u.unwrap(); 
+            let p = Ast(AstType::UnaryExp(u.0), &tokens[..tokens.len() - u.1.len()]); 
+            Ok((Self::UnaryExp(Box::new(p)), u.1))
+        } else {
+            let u = u2.unwrap();
+            let (p, r) = u; 
+            Ok((p, r)) 
+        }
+    } 
+}
+
+impl <'a> CastExp<'a> {
+    pub fn type_cast_parse(stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), ()> {
+        let f = tokens.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        let TokenType::Parenthesis { is_left: true  } = ft else { return Err(()) }; 
+        let (p, r) = TypeName::parse(stack, tokens)?; 
+        let f = r.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        let TokenType::Parenthesis { is_left: false  } = ft else { return Err(()) }; 
+        let r2 = &r[1..]; 
+        let (p2, r3) = CastExp::parse(stack, r2)?;
+        let p = Ast(AstType::TypeName(p), &tokens[..tokens.len() - r.len()]); 
+        let p2 = Ast(AstType::CastExp(p2), &r2[..r2.len() - r3.len()]); 
+        Ok((Self::Cast { type_name: Box::new(p), cast_exp: Box::new(p2) }, r))  
+    }
+}
+

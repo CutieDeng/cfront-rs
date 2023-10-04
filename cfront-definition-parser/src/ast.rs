@@ -5,7 +5,6 @@ pub mod decl;
 pub mod decl_specs;
 pub mod r#struct;
 pub mod r#enum;
-pub mod typename;
 pub mod abstract_declarator;
 pub mod pointer;
 pub mod struct_decl;
@@ -21,12 +20,13 @@ pub mod assignment_exp;
 pub mod initializer;
 pub mod stat;
 pub mod exp;
+pub mod type_name;
 
 use std::marker::PhantomData;
 
 use cfront_definition::token::Token;
 
-use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::{EnumSpec, Enumerator, EnumeratorList}, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::{Decl, DeclList}, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList, const_exp::ConstExp, abstract_declarator::{AbstractDeclarator, DirectAbstractDeclarator}, init_declarator::InitDeclarator, initializer::{Initializer, InitializerList}, assignment_exp::AssignmentExp, stat::{Stat, StatList, CompoundStat, SelectionStat, IterationStat, LabeledStat, JumpStat, ExpStat}, exp::Exp};
+use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::{EnumSpec, Enumerator, EnumeratorList}, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::{Decl, DeclList}, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList, const_exp::ConstExp, abstract_declarator::{AbstractDeclarator, DirectAbstractDeclarator}, init_declarator::InitDeclarator, initializer::{Initializer, InitializerList}, assignment_exp::AssignmentExp, stat::{Stat, StatList, CompoundStat, SelectionStat, IterationStat, LabeledStat, JumpStat, ExpStat}, exp::{Exp, BiExp, CastExp, UnaryExp}, type_name::TypeName};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'a> 
@@ -65,6 +65,9 @@ pub enum AstType <'a> {
     InitializerList(InitializerList<'a>),
     AssignmentExp(AssignmentExp<'a>), 
     Exp(Exp<'a>),
+    BiExp(BiExp<'a>),
+    CastExp(CastExp<'a>),
+    UnaryExp(UnaryExp<'a>),
     Stat(Stat<'a>),
     CompoundStat(CompoundStat<'a>),
     SelectionStat(SelectionStat<'a>),
@@ -73,5 +76,6 @@ pub enum AstType <'a> {
     JumpStat(JumpStat<'a>),
     ExpStat(ExpStat<'a>),
     StatList(StatList<'a>),
+    TypeName(TypeName<'a>),
 }
 
