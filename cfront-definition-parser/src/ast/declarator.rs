@@ -2,7 +2,7 @@ use cfront_definition::token::{Token, TokenType};
 
 use crate::{Parser, ast::AstType};
 
-use super::{Ast, id_list::IdList};
+use super::{Ast, id_list::IdList, param_type_list::ParamTypeList};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Declarator<'a> {
@@ -61,20 +61,21 @@ impl <'a> Parser<'a> for DirectDeclarator<'a> {
             }
             _ => return Err(()),  
         }
+        'outer: 
         loop {
             let Some(first) = rst.first() else { break }; 
             let first_type = &first.token_type; 
             match first_type {
-                TokenType::Parenthesis { is_left: true } => {
+                TokenType::Bracket { is_left: true } => {
                     match rst.get(1) {
                         Some(f2) => {
                             let f2type = &f2.token_type; 
                             match f2type {
-                                TokenType::Parenthesis { is_left: false } => {
+                                TokenType::Brace { is_left: false } => {
                                     rst = &rst[2..]; 
                                     let len = tokens.len() - rst.len(); 
                                     let t = Ast(AstType::DirectDeclarator(this), &tokens[..len]); 
-                                    this = DirectDeclarator::EmptyParenthesis(Box::new(t)); 
+                                    this = DirectDeclarator::EmptyBracket(Box::new(t)); 
                                 }
                                 _ => {
                                     unimplemented!()
@@ -84,37 +85,52 @@ impl <'a> Parser<'a> for DirectDeclarator<'a> {
                         None => break, 
                     }
                 }
-                TokenType::Bracket { is_left: true } => {
+                TokenType::Parenthesis { is_left: true } => {
                     match rst.get(1) {
                         Some(f2) => {
                             let f2type = &f2.token_type;         
                             match f2type {
-                                TokenType::Bracket { is_left: false } => {
+                                TokenType::Parenthesis { is_left: false } => {
                                     rst = &rst[2..]; 
                                     let len = tokens.len() - rst.len(); 
                                     let t = Ast(AstType::DirectDeclarator(this), &tokens[..len]); 
-                                    this = DirectDeclarator::EmptyBracket(Box::new(t)); 
+                                    this = DirectDeclarator::EmptyParenthesis(Box::new(t)); 
                                 }
-                                TokenType::Identifier(_) => {
+                                _ => { 
                                     let tmp = &rst[1..]; 
-                                    let Ok(parse) = IdList::parse(stack, tmp) else { break }; 
+                                    'inner_scope: {
+                                        let Ok(parse) = IdList::parse(stack, tmp) else { break 'inner_scope }; 
+                                        let r2 = parse.1; 
+                                        let Some(f2) = r2.first() else { break 'inner_scope }; 
+                                        let f2type = &f2.token_type;
+                                        match f2type {
+                                            TokenType::Parenthesis { is_left: false } => {
+                                                let len = tokens.len() - rst.len(); 
+                                                let t = Ast(AstType::DirectDeclarator(this), &tokens[..len]); 
+                                                let len = tmp.len() - r2.len(); 
+                                                let t2 = Ast(AstType::IdList(parse.0), &tmp[..len]);  
+                                                this = DirectDeclarator::IdList { direct_declarator: Box::new(t), id_list: Box::new(t2) }; 
+                                                rst = &r2[1..]; 
+                                                continue 'outer;
+                                            }
+                                            _ => break 'inner_scope, 
+                                        }
+                                    }
+                                    let Ok(parse) = ParamTypeList::parse(stack, tmp) else { break };  
                                     let r2 = parse.1; 
                                     let Some(f2) = r2.first() else { break }; 
-                                    let f2type = &f2.token_type;
-                                    match f2type {
-                                        TokenType::Bracket { is_left: false } => {
-                                            let len = tokens.len() - rst.len(); 
-                                            let t = Ast(AstType::DirectDeclarator(this), &tokens[..len]); 
-                                            let len = tmp.len() - r2.len(); 
-                                            let t2 = Ast(AstType::IdList(parse.0), &tmp[..len]);  
-                                            this = DirectDeclarator::IdList { direct_declarator: Box::new(t), id_list: Box::new(t2) }; 
-                                            rst = &r2[1..]; 
-                                        }
-                                        _ => break, 
+                                    let f2type = &f2.token_type; 
+                                    if let TokenType::Parenthesis { is_left: false } = f2type {
+                                        let len = tokens.len() - rst.len(); 
+                                        let t = Ast(AstType::DirectDeclarator(this), &tokens[..len]); 
+                                        let len = tmp.len() - r2.len(); 
+                                        let t2 = Ast(AstType::ParamTypeList(parse.0), &tmp[..len]); 
+                                        this = DirectDeclarator::ParamTypeList { direct_declarator: Box::new(t), param_type_list: Box::new(t2) }; 
+                                        rst = &r2[1..]; 
+                                        continue 'outer; 
+                                    } else {
+                                        break; 
                                     }
-                                }
-                                _ => {
-                                    unimplemented!()
                                 }
                             }
                         }
