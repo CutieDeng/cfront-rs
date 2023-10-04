@@ -7,7 +7,6 @@ pub mod r#struct;
 pub mod r#enum;
 pub mod typename;
 pub mod abstract_declarator;
-pub mod direct_abstract_declarator;
 pub mod pointer;
 pub mod struct_decl;
 pub mod type_qualifier_list;
@@ -16,12 +15,13 @@ pub mod param_decl;
 pub mod id_list;
 pub mod param_type_list;
 pub mod declarator;
+pub mod const_exp;
 
 use std::marker::PhantomData;
 
 use cfront_definition::token::Token;
 
-use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::EnumSpec, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::Decl, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList};
+use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::EnumSpec, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::Decl, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList, const_exp::ConstExp, abstract_declarator::{AbstractDeclarator, DirectAbstractDeclarator}};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'a> 
@@ -48,4 +48,7 @@ pub enum AstType <'a> {
     Declarator(Declarator<'a>),
     DirectDeclarator(DirectDeclarator<'a>), 
     IdList(IdList<'a>),
+    ConstExp(ConstExp<'a>),
+    AbstractDeclarator(AbstractDeclarator<'a>), 
+    DirectAbstractDeclarator(DirectAbstractDeclarator<'a>),
 }
