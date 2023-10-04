@@ -131,7 +131,20 @@ impl <'a> Parser<'a> for ConditionalExp<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let logic = BiExp::parse(stack, tokens)?;
+        let f = logic.1.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        let TokenType::Operator("?") = ft else { return Ok((Self::LogicalOrExp(Box::new(Ast(AstType::BiExp(logic.0), &tokens[..tokens.len() - logic.1.len()]))), logic.1)) }; 
+        let r = &logic.1[1..]; 
+        let (p, r2) = Exp::parse(stack, r)?;
+        let f = r2.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        let TokenType::Operator(":") = ft else { return Err(()) }; 
+        let r3 = &r2[1..]; 
+        let (p2, r4) = ConditionalExp::parse(stack, r3)?; 
+        let p = Ast(AstType::Exp(p), &r[..r.len() - r2.len()]); 
+        let p2 = Ast(AstType::ConditionalExp(p2), &r3[..r3.len() - r4.len()]); 
+        Ok((Self::Condition { logical_or_exp: Box::new(Ast(AstType::BiExp(logic.0), &tokens[..tokens.len() - logic.1.len()])), exp: Box::new(p), conditional_exp: Box::new(p2) }, r4)) 
     }
 } 
 
@@ -207,7 +220,7 @@ impl <'a> Parser<'a> for BiExp<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        return Self::parse_impl(tokens, BiOperatorLevel::LogicalOrExp); 
     }
 }
 
