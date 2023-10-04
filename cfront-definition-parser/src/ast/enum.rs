@@ -1,4 +1,4 @@
-use cfront_definition::token::{Token, TokenType};
+use cfront_definition::{token::{Token, TokenType}, Keyword};
 
 use crate::{Parser, ast::const_exp::ConstExp};
 
@@ -6,7 +6,7 @@ use super::{Ast, AstType};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EnumSpec <'a> {
-    pub r#enum: Token<'a>, 
+    pub id: Option<Token<'a>>,
     pub enumerator_list: Option<Box<Ast<'a>>>, 
 }
 
@@ -15,7 +15,35 @@ impl <'a> Parser<'a> for EnumSpec<'a> {
     type E = ();
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let first = tokens.first().ok_or(())?;
+        let ft = &first.token_type; 
+        let TokenType::Keyword(Keyword::Enum) = ft else { return Err(()) }; 
+        let mut r = &tokens[1..]; 
+        let nxt = r.first().ok_or(())?; 
+        let nxtt = &nxt.token_type; 
+        let mut id = None; 
+        if let TokenType::Identifier(_) = nxtt {
+            id = Some(nxt.clone()); 
+            r = &r[1..];  
+        } 
+        let nxt = r.first(); 
+        let mut enumerator_list = None; 
+        if let Some(Token{token_type: TokenType::Brace { is_left: true }, ..}) = nxt {
+            'list_attempt: {
+                let rst = &r[1..]; 
+                let Ok((el, r2)) = EnumeratorList::parse(stack, rst) else { break 'list_attempt }; 
+                let Some(Token { token_type: TokenType::Brace { is_left: false }, ..}) = r2.first() else { break 'list_attempt }; 
+                enumerator_list = Some(Box::new(Ast(AstType::EnumeratorList(el), &rst[..rst.len() - r2.len()]))); 
+                r = r2; 
+            }
+        } 
+        if id.is_none() && enumerator_list.is_none() {
+            return Err(()); 
+        } 
+        return Ok((EnumSpec {
+            id, 
+            enumerator_list, 
+        }, r)); 
     }
     
 } 
