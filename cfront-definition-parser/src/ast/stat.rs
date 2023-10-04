@@ -21,7 +21,59 @@ impl <'a> Parser<'a> for Stat<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let f = tokens.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        match ft {
+            TokenType::Brace { is_left: true } => {
+                let (compound_stat, r) = CompoundStat::parse(stack, tokens)?; 
+                let compound_stat = Box::new(Ast(AstType::CompoundStat(compound_stat), &tokens[..tokens.len() - r.len()])); 
+                return Ok((Stat(StatTag::CompoundStat, compound_stat), r));  
+            }
+            | TokenType::Keyword(Keyword::Case) 
+            | TokenType::Keyword(Keyword::Default) 
+            => {
+                let (labeled_stat, r) = LabeledStat::parse(stack, tokens)?; 
+                let labeled_stat = Box::new(Ast(AstType::LabeledStat(labeled_stat), &tokens[..tokens.len() - r.len()])); 
+                return Ok((Stat(StatTag::LabeledStat, labeled_stat), r));  
+            }
+            | TokenType::Keyword(Keyword::Do)
+            | TokenType::Keyword(Keyword::For)
+            | TokenType::Keyword(Keyword::While) 
+            => {
+                let (iteration_stat, r) = IterationStat::parse(stack, tokens)?; 
+                let iteration_stat = Box::new(Ast(AstType::IterationStat(iteration_stat), &tokens[..tokens.len() - r.len()])); 
+                return Ok((Stat(StatTag::IterationStat, iteration_stat), r));    
+            }
+            | TokenType::Keyword(Keyword::Switch)
+            | TokenType::Keyword(Keyword::If) 
+            => {
+                let (selection_stat, r) = SelectionStat::parse(stack, tokens)?; 
+                let selection_stat = Box::new(Ast(AstType::SelectionStat(selection_stat), &tokens[..tokens.len() - r.len()])); 
+                return Ok((Stat(StatTag::SelectionStat, selection_stat), r));   
+            }
+            | TokenType::Identifier(_) => {
+                let nxt = tokens.get(1).ok_or(())?; 
+                let nxtt = &nxt.token_type; 
+                if let TokenType::Operator(":") = nxtt {
+                    let (labeled_stat, r) = LabeledStat::parse(stack, tokens)?; 
+                    let labeled_stat = Box::new(Ast(AstType::LabeledStat(labeled_stat), &tokens[..tokens.len() - r.len()])); 
+                    return Ok((Stat(StatTag::LabeledStat, labeled_stat), r)); 
+                }
+            }
+            | TokenType::Keyword(Keyword::Goto)
+            | TokenType::Keyword(Keyword::Continue) 
+            | TokenType::Keyword(Keyword::Break) 
+            | TokenType::Keyword(Keyword::Return) 
+            => {
+                let (jump_stat, r) = JumpStat::parse(stack, tokens)?; 
+                let jump_stat = Box::new(Ast(AstType::JumpStat(jump_stat), &tokens[..tokens.len() - r.len()])); 
+                return Ok((Stat(StatTag::JumpStat, jump_stat), r)); 
+            } 
+            _ => (),
+        }
+        let (exp, r) = ExpStat::parse(stack, tokens)?; 
+        let exp = Box::new(Ast(AstType::ExpStat(exp), &tokens[..tokens.len() - r.len()])); 
+        return Ok((Stat(StatTag::ExpStat, exp), r)); 
     }
 }
 
