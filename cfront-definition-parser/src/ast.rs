@@ -11,6 +11,9 @@ pub mod direct_abstract_declarator;
 pub mod pointer;
 pub mod struct_decl;
 pub mod type_qualifier_list;
+pub mod param_list;
+pub mod param_decl;
+pub mod id_list;
 
 use std::marker::PhantomData;
 

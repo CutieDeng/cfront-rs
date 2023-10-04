@@ -11,6 +11,7 @@ pub struct Pointer<'a> {
 }
 
 impl <'a> Parser<'a> for Pointer<'a> {
+
     type E = ();
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
@@ -25,7 +26,7 @@ impl <'a> Parser<'a> for Pointer<'a> {
                 match p2.token_type {
                     | TokenType::Keyword(Keyword::Const) 
                     | TokenType::Keyword(Keyword::Volatile) => {
-                        let p = TypeQualifierList::parse(stack, rst)?; 
+                        let p = TypeQualifierList::parse(stack, rst).unwrap(); 
                         type_qualifier_list = Some(Box::new(Ast(AstType::TypeQualifierList(p.0), &rst[..rst.len() - p.1.len()]))); 
                         rst = p.1; 
                     }
@@ -39,7 +40,7 @@ impl <'a> Parser<'a> for Pointer<'a> {
             Some(p3) => {
                 match p3.token_type {
                     TokenType::Operator("*") => {
-                        let p = Pointer::parse(stack, rst)?; 
+                        let p = Pointer::parse(stack, rst).unwrap(); 
                         pointer = Some(Box::new(Ast(AstType::Pointer(p.0), &rst[..rst.len() - p.1.len()]))); 
                         rst = p.1; 
                     }
@@ -48,10 +49,11 @@ impl <'a> Parser<'a> for Pointer<'a> {
             }
             None => (),  
         }
-        return Ok((Pointer {
-            type_qualifier_list, 
-            pointer, 
-        }, rst));  
+        let pointer = Pointer {
+            type_qualifier_list,
+            pointer,
+        }; 
+        return Ok((pointer, rst));
     } 
     
 } 
