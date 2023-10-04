@@ -1,5 +1,6 @@
 use crate::{Parser, ast::decl_specs::DeclSpecs};
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ParamDecl <'a> {
     a: &'a !, 
 }

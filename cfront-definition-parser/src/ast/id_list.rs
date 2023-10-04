@@ -4,6 +4,7 @@ use crate::Parser;
 
 use super::Ast;
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct IdList<'a> {
     pub id: Vec<Token<'a>>, 
     pub trailing_comma: bool, 
