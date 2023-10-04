@@ -1,19 +1,33 @@
-use cfront_definition::{token::{Token, TokenType, self}, Keyword};
+use cfront_definition::Keyword;
+use cfront_definition::token::{Token, TokenType};
 
 use crate::{Parser, ast::{AstType, type_name::TypeName, argument_exp_list::ArgumentExpList}};
 
 use super::Ast;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Exp <'a> {
-    i : &'a !, 
-}
+pub struct Exp <'a> (pub Vec<Ast<'a>>);
 
 impl <'a> Parser<'a> for Exp<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let mut ans = Vec::new(); 
+        let mut rst = tokens; 
+        loop {
+            let (p, r) = AssignmentExp::parse(stack, rst)?;
+            let p = Ast(AstType::AssignmentExp(p), &rst[..rst.len() - r.len()]); 
+            ans.push(p); 
+            let Some(f) = r.first() else { break }; 
+            let ft = &f.token_type; 
+            match ft {
+                TokenType::Operator(",") => {
+                    rst = &r[1..]; 
+                }
+                _ => break, 
+            }
+        } 
+        Ok((Self(ans), rst)) 
     }
 }
 
@@ -265,6 +279,7 @@ impl <'a> Parser<'a> for BiExp<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        debug_assert!(stack.is_empty());
         return Self::parse_impl(tokens, BiOperatorLevel::LogicalOrExp); 
     }
 }
