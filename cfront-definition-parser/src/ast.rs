@@ -19,12 +19,14 @@ pub mod const_exp;
 pub mod init_declarator;
 pub mod assignment_exp;
 pub mod initializer;
+pub mod stat;
+pub mod exp;
 
 use std::marker::PhantomData;
 
 use cfront_definition::token::Token;
 
-use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::{EnumSpec, Enumerator, EnumeratorList}, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::Decl, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList, const_exp::ConstExp, abstract_declarator::{AbstractDeclarator, DirectAbstractDeclarator}, init_declarator::InitDeclarator, initializer::{Initializer, InitializerList}, assignment_exp::AssignmentExp};
+use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::{EnumSpec, Enumerator, EnumeratorList}, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::{Decl, DeclList}, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList, const_exp::ConstExp, abstract_declarator::{AbstractDeclarator, DirectAbstractDeclarator}, init_declarator::InitDeclarator, initializer::{Initializer, InitializerList}, assignment_exp::AssignmentExp, stat::{Stat, StatList}, exp::Exp};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'a> 
@@ -48,6 +50,7 @@ pub enum AstType <'a> {
     Pointer(Pointer<'a>),
     TypeQualifierList(TypeQualifierList<'a>),
     Decl(Decl<'a>),
+    DeclList(DeclList<'a>),
     ParamList(ParamList<'a>),
     ParamDecl(ParamDecl<'a>),
     ParamTypeList(ParamTypeList<'a>), 
@@ -61,5 +64,8 @@ pub enum AstType <'a> {
     Initializer(Initializer<'a>),
     InitializerList(InitializerList<'a>),
     AssignmentExp(AssignmentExp<'a>), 
+    Exp(Exp<'a>),
+    Stat(Stat<'a>),
+    StatList(StatList<'a>),
 }
 
