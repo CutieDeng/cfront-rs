@@ -111,7 +111,9 @@ impl <'a> Parser<'a> for UnaryExp<'a> {
             }
             _ => (),
         }
-        todo!()
+        let (p, r) = PostfixExp::parse(stack, tokens)?; 
+        let p = Ast(AstType::PostfixExp(p), &tokens[..tokens.len() - r.len()]); 
+        Ok((Self::PostfixExp(Box::new(p)), r)) 
     }
 } 
 
@@ -302,3 +304,68 @@ impl <'a> CastExp<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct PostfixExp<'a> {
+    a: &'a !,
+}
+
+impl <'a> Parser<'a> for PostfixExp<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        todo!()
+    }
+} 
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum PrimaryExp<'a> {
+    Id(Token<'a>), 
+    Const(Token<'a>), 
+    String(Vec<Token<'a>>),
+    Exp(Box<Ast<'a>>), 
+}
+
+impl <'a> Parser<'a> for PrimaryExp<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        let f = tokens.first().ok_or(())?;
+        let ft = &f.token_type; 
+        match ft {
+            TokenType::Identifier(_) => {
+                return Ok((Self::Id(f.clone()), &tokens[1..])); 
+            }
+            TokenType::NumberLiteral(_, _) => {
+                return Ok((Self::Const(f.clone()), &tokens[1..])); 
+            }
+            TokenType::CharLiteral(_, _) => {
+                return Ok((Self::Const(f.clone()), &tokens[1..]));  
+            }
+            TokenType::StringLiteral(_, _) => {
+                let mut ans = vec![f.clone()];
+                let mut idx = 1; 
+                while let Some(f) = tokens.get(idx) {
+                    let ft = &f.token_type; 
+                    match ft {
+                        TokenType::StringLiteral(_, _) => {
+                            ans.push(f.clone()); 
+                            idx += 1; 
+                        }
+                        _ => break, 
+                    }
+                } 
+                return Ok((Self::String(ans), &tokens[idx..]));  
+            }
+            TokenType::Parenthesis { is_left: true } => {
+                let rs = &tokens[1..]; 
+                let (p, r) = Exp::parse(stack, rs)?; 
+                let f = r.first().ok_or(())?; 
+                let ft = &f.token_type; 
+                let TokenType::Parenthesis { is_left: false } = ft else { return Err(()) }; 
+                let p = Ast(AstType::Exp(p), &rs[..rs.len() - r.len()]); 
+                return Ok((Self::Exp(Box::new(p)), &r[1..])); 
+            }
+            _ => return Err(()),
+        }
+    }
+}  
