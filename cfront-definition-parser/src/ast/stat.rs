@@ -1,4 +1,4 @@
-use cfront_definition::{token::{Token, TokenType, self}, Keyword};
+use cfront_definition::{token::{Token, TokenType}, Keyword};
 
 use crate::{Parser, ast::{const_exp::ConstExp, AstType, exp::Exp, decl::DeclList}};
 
@@ -219,6 +219,152 @@ impl <'a> Parser<'a> for SelectionStat<'a> {
             }
             _ => return Err(()), 
         }
-        todo!()
     }
 }
+
+#[derive(Debug, PartialEq, Eq, Clone)] 
+pub enum IterationStat <'a> {
+    While {
+        exp: Box<Ast<'a>>,
+        stat: Box<Ast<'a>>, 
+    },
+    DoWhile {
+        stat: Box<Ast<'a>>,
+        exp: Box<Ast<'a>>, 
+    }, 
+    For {
+        exp1: Option<Box<Ast<'a>>>,
+        exp2: Option<Box<Ast<'a>>>,
+        exp3: Option<Box<Ast<'a>>>,
+        stat: Box<Ast<'a>>, 
+    }, 
+}
+
+impl <'a> Parser<'a> for IterationStat<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        let f = tokens.first().ok_or(())?; 
+        let ft = &f.token_type; 
+        let rs = &tokens[1..]; 
+        match ft {
+            TokenType::Keyword(Keyword::While) => {
+                let pl = rs.first().ok_or(())?; 
+                let plt = &pl.token_type; 
+                let TokenType::Parenthesis { is_left: true } = plt else { return Err(()) }; 
+                let (exp, r2) = Exp::parse(stack, rs)?; 
+                let nxt = r2.first().ok_or(())?; 
+                let nxtt = &nxt.token_type; 
+                let TokenType::Parenthesis { is_left: false } = nxtt else { return Err(()) }; 
+                let r3 = &r2[1..]; 
+                let (stat, r4) = Stat::parse(stack, r3)?; 
+                let exp = Box::new(Ast(AstType::Exp(exp), &rs[..rs.len() - r2.len()])); 
+                let stat = Box::new(Ast(AstType::Stat(stat), &r3[..r3.len() - r4.len()])); 
+                return Ok((IterationStat::While { exp, stat }, r4)); 
+            }
+            TokenType::Keyword(Keyword::Do) => {
+                let (stat, r2) = Stat::parse(stack, rs)?; 
+                let nxt = r2.first().ok_or(())?; 
+                let nxtt = &nxt.token_type; 
+                let TokenType::Keyword(Keyword::While) = nxtt else { return Err(()) }; 
+                let nxt2 = r2.get(1).ok_or(())?; 
+                let nxt2t = &nxt2.token_type; 
+                let TokenType::Parenthesis { is_left: true } = nxt2t else { return Err(()) }; 
+                let r3 = &r2[2..]; 
+                let (exp, r4) = Exp::parse(stack, r3)?; 
+                let nxt3 = r4.first().ok_or(())?; 
+                let nxt3t = &nxt3.token_type; 
+                let TokenType::Parenthesis { is_left: false } = nxt3t else { return Err(()) }; 
+                let r5 = &r4[1..]; 
+                let stat = Box::new(Ast(AstType::Stat(stat), &rs[..rs.len() - r2.len()])); 
+                let exp = Box::new(Ast(AstType::Exp(exp), &r3[..r3.len() - r4.len()])); 
+                return Ok((IterationStat::DoWhile { stat, exp }, r5)); 
+            }
+            TokenType::Keyword(Keyword::For) => {
+                let pl = rs.first().ok_or(())?; 
+                let plt = &pl.token_type; 
+                let TokenType::Parenthesis { is_left: true } = plt else { return Err(()) }; 
+                let mut rst = rs; 
+                let mut exps = [None, None, None];
+                for (i, ele) in exps.iter_mut().enumerate() {
+                    if i != 0 {
+                        let nxt = rst.first().ok_or(())?; 
+                        let nxtt = &nxt.token_type; 
+                        let TokenType::Operator(";") = nxtt else { return Err(()) }; 
+                        rst = &rst[1..]; 
+                    } 
+                    let exp = Exp::parse(stack, rst); 
+                    if let Ok((exp, r2)) = exp {
+                        let exp = Box::new(Ast(AstType::Exp(exp), &rst[..rst.len() - r2.len()])); 
+                        *ele = Some(exp); 
+                        rst = r2; 
+                    } 
+                } 
+                let nxt = rst.first().ok_or(())?; 
+                let nxtt = &nxt.token_type; 
+                let TokenType::Parenthesis { is_left: false } = nxtt else { return Err(()) }; 
+                let r2 = &rst[1..]; 
+                let (stat, r3) = Stat::parse(stack, r2)?; 
+                let stat = Box::new(Ast(AstType::Stat(stat), &r2[..r2.len() - r3.len()])); 
+                let [exp1, exp2, exp3] = exps; 
+                return Ok((IterationStat::For { exp1, exp2, exp3, stat }, r3)); 
+            }
+            _ => return Err(()), 
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum JumpStat <'a> {
+    Goto(Token<'a>),
+    Continue, 
+    Break, 
+    Return(Option<Box<Ast<'a>>>), 
+}
+
+impl <'a> Parser<'a> for JumpStat<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+        let f = tokens.first().ok_or(())?;
+        let ft = &f.token_type; 
+        match ft {
+            TokenType::Keyword(Keyword::Goto) => {
+                let nxt = tokens.get(1).ok_or(())?; 
+                let nxtt = &nxt.token_type; 
+                let TokenType::Identifier(_) = nxtt else { return Err(()) }; 
+                let nxt2 = tokens.get(2).ok_or(())?; 
+                let nxt2t = &nxt2.token_type; 
+                let TokenType::Operator(";") = nxt2t else { return Err(()) }; 
+                return Ok((JumpStat::Goto(nxt.clone()), &tokens[3..])); 
+            }
+            TokenType::Keyword(Keyword::Continue) => {
+                let nxt = tokens.get(1).ok_or(())?; 
+                let nxtt = &nxt.token_type; 
+                let TokenType::Operator(";") = nxtt else { return Err(()) }; 
+                return Ok((JumpStat::Continue, &tokens[2..])); 
+            }
+            TokenType::Keyword(Keyword::Break) => {
+                let nxt = tokens.get(1).ok_or(())?; 
+                let nxtt = &nxt.token_type; 
+                let TokenType::Operator(";") = nxtt else { return Err(()) }; 
+                return Ok((JumpStat::Break, &tokens[2..])); 
+            }
+            TokenType::Keyword(Keyword::Return) => {
+                let nxt = tokens.get(1).ok_or(())?; 
+                let nxtt = &nxt.token_type; 
+                let TokenType::Operator(";") = nxtt else { 
+                    let rst = &tokens[1..]; 
+                    let (exp, r) = Exp::parse(stack, rst)?; 
+                    let nxt = r.first().ok_or(())?; 
+                    let nxtt = &nxt.token_type; 
+                    let TokenType::Operator(";") = nxtt else { return Err(()) }; 
+                    let exp = Box::new(Ast(AstType::Exp(exp), &rst[..rst.len() - r.len()]));
+                    return Ok((JumpStat::Return(Some(exp)), &r[1..])); 
+                }; 
+                return Ok((JumpStat::Return(None), &tokens[2..])); 
+            }
+            _ => return Err(()), 
+        }
+    }
+} 
