@@ -19,7 +19,7 @@ use std::marker::PhantomData;
 
 use cfront_definition::token::Token;
 
-use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::EnumSpec, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList};
+use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::EnumSpec, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::Decl};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'a> 
@@ -39,4 +39,5 @@ pub enum AstType <'a> {
     StructDeclList(StructDeclList<'a>),
     Pointer(Pointer<'a>),
     TypeQualifierList(TypeQualifierList<'a>),
+    Decl(Decl<'a>),
 }
