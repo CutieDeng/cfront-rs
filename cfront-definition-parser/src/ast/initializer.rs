@@ -21,9 +21,12 @@ impl <'a> Parser<'a> for Initializer<'a> {
         if let TokenType::Brace { is_left: true } = ft {
             let r = &tokens[1..];
             let (list, r2) = InitializerList::parse(stack, r)?; 
+            let f = r2.first().ok_or(())?;
+            let ft = &f.token_type; 
+            let TokenType::Brace { is_left: false } = ft else { return Err(()) };
             let ast = Ast(AstType::InitializerList(list), &r[..r.len() - r2.len()]);
             ans = Initializer::BracedInitList(Box::new(ast)); 
-            rst = r2; 
+            rst = &r2[1..]; 
         } else {
             let (expr, r) = AssignmentExp::parse(stack, tokens)?; 
             let ast = Ast(AstType::AssignmentExp(expr), &tokens[..tokens.len() - r.len()]); 

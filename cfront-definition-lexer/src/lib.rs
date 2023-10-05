@@ -40,6 +40,43 @@ pub fn analyze(input: &str) -> Vec<Token<'_>> {
                 } 
                 _ => (), 
             }
+            match comment_state {
+                CommentState::None => {
+                    if *c == '/' {
+                        if let Some((_, c2)) = char_indices.get(idx + 1) {
+                            if *c2 == '/' {
+                                // #[cfg(debug_assertions)]
+                                // println!("position: {line}:{column}");
+                                comment_state = CommentState::Line; 
+                                just_ignore = 1; 
+                                break 'scope; 
+                            } else if *c2 == '*' {
+                                comment_state = CommentState::Block; 
+                                just_ignore = 1; 
+                                break 'scope; 
+                            }
+                        } 
+                    }
+                }
+                CommentState::Line => {
+                    if *c == '\n' {
+                        comment_state = CommentState::None; 
+                    }
+                    break 'scope;  
+                }
+                CommentState::Block => {
+                    if *c == '*' {
+                        if let Some((_, c2)) = char_indices.get(idx + 1) {
+                            if *c2 == '/' {
+                                comment_state = CommentState::None; 
+                                just_ignore = 1; 
+                                break 'scope; 
+                            }
+                        } 
+                    } 
+                    break 'scope;
+                }
+            } 
             match quoting_state {
                 QuotingState::None => {
                     if *c == '\'' {
@@ -71,41 +108,6 @@ pub fn analyze(input: &str) -> Vec<Token<'_>> {
                     break 'scope; 
                 }
             }
-            match comment_state {
-                CommentState::None => {
-                    if *c == '/' {
-                        if let Some((_, c2)) = char_indices.get(idx + 1) {
-                            if *c2 == '/' {
-                                comment_state = CommentState::Line; 
-                                just_ignore = 1; 
-                                break 'scope; 
-                            } else if *c2 == '*' {
-                                comment_state = CommentState::Block; 
-                                just_ignore = 1; 
-                                break 'scope; 
-                            }
-                        } 
-                    }
-                }
-                CommentState::Line => {
-                    if *c == '\n' {
-                        comment_state = CommentState::None; 
-                    }
-                    break 'scope;  
-                }
-                CommentState::Block => {
-                    if *c == '*' {
-                        if let Some((_, c2)) = char_indices.get(idx + 1) {
-                            if *c2 == '/' {
-                                comment_state = CommentState::None; 
-                                just_ignore = 1; 
-                                break 'scope; 
-                            }
-                        } 
-                    } 
-                    break 'scope;
-                }
-            } 
             let mut punt = false; 
             match lidx {
                 Some(l) => {

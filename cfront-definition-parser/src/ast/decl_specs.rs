@@ -54,15 +54,19 @@ impl <'a> Parser<'a> for TypeSpec<'a> {
                 return Ok((TypeSpec::EnumSpec(Box::new(node)), rst));  
             }
             | TokenType::Identifier(_) => {
-                // preview next to check is '(' or '[' or not. if yes, then drop it. 
-                let rs = tokens.get(1);
-                if let Some(Token { token_type: TokenType::Parenthesis { is_left: true }, .. }) = rs {
-                    return Err(()); 
-                } else if let Some(Token { token_type: TokenType::Bracket { is_left: true }, .. }) = rs {
-                    return Err(()); 
+                // TODO: realize the typedef recognization, now deprecates it. 
+                if false {
+                    // preview next to check is '(' or '[' or not. if yes, then drop it. 
+                    let rs = tokens.get(1);
+                    if let Some(Token { token_type: TokenType::Parenthesis { is_left: true }, .. }) = rs {
+                        return Err(()); 
+                    } else if let Some(Token { token_type: TokenType::Bracket { is_left: true }, .. }) = rs {
+                        return Err(()); 
+                    }
+                    let node = TypeSpec::TypedefName(first.clone()); 
+                    return Ok((node, &tokens[1..])); 
                 }
-                let node = TypeSpec::TypedefName(first.clone()); 
-                return Ok((node, &tokens[1..])); 
+                return Err(()); 
             }
             _ => return Err(()), 
         }

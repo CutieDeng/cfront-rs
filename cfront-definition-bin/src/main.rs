@@ -1,12 +1,16 @@
-use std::io::stdin;
+use std::fs::File;
+use std::io::Read;
 
 use cfront_definition_lexer;
 use cfront_definition_parser; 
 
 fn main() {
+    // redirect input for file main.c
+    let file = File::open("main.c").unwrap(); 
     let mut content = String::new(); 
-    stdin().read_line(&mut content).unwrap(); 
+    { file } .read_to_string(&mut content).unwrap(); 
     let tokens = cfront_definition_lexer::analyze(&content); 
+    println!("{tokens:?}");
     let expressions = cfront_definition_parser::parser(&tokens); 
     println!("{:#?}", expressions);
     match expressions {

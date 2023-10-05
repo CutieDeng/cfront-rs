@@ -408,6 +408,7 @@ impl <'a> Parser<'a> for PostfixExp<'a> {
         let (p, r) = PrimaryExp::parse(stack, tokens)?; 
         let p = Ast(AstType::PrimaryExp(p), &rst[..rst.len() - r.len()]); 
         this = Self::PrimaryExp(Box::new(p));  
+        rst = r; 
         loop {
             let f = rst.first().ok_or(())?; 
             let ft = &f.token_type; 

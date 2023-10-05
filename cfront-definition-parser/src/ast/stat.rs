@@ -20,7 +20,7 @@ pub struct Stat<'a> (pub StatTag, pub Box<Ast<'a>>);
 impl <'a> Parser<'a> for Stat<'a> {
     type E = (); 
 
-    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         let f = tokens.first().ok_or(())?; 
         let ft = &f.token_type; 
         match ft {
@@ -165,6 +165,8 @@ impl <'a> Parser<'a> for CompoundStat<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        // #[cfg(debug_assertions)]
+        // dbg!(tokens);
         let f = tokens.first().ok_or(())?; 
         let ft = &f.token_type; 
         let TokenType::Brace { is_left: true } = ft else { return Err(()) }; 
@@ -172,12 +174,16 @@ impl <'a> Parser<'a> for CompoundStat<'a> {
         let mut decl_list = None; 
         let mut stat_list = None; 
         let d = DeclList::parse(stack, rst); 
+        #[cfg(debug_assertions)]
+        { _ = d.as_ref().map(|(r, _)| { dbg!(r); }) }
         if let Ok((d, r2)) = d {
             let d = Box::new(Ast(AstType::DeclList(d), &rst[..rst.len() - r2.len()])); 
             rst = r2; 
             decl_list = Some(d);  
         }
         let s = StatList::parse(stack, rst); 
+        #[cfg(debug_assertions)]
+        dbg!(s.as_ref().map(|(a, _)| a).ok());
         if let Ok((s, r2)) = s {
             let s = Box::new(Ast(AstType::StatList(s), &rst[..rst.len() - r2.len()])); 
             rst = r2; 
@@ -206,6 +212,9 @@ impl <'a> Parser<'a> for StatList<'a> {
             ans.push(Ast(AstType::Stat(parse), &rst[..rst.len() - rst2.len()])); 
             rst = rst2; 
         } 
+        if ans.is_empty() {
+            return Err(()); 
+        }
         return Ok((StatList(ans), rst)); 
     }
 } 
@@ -377,7 +386,7 @@ pub enum JumpStat <'a> {
 impl <'a> Parser<'a> for JumpStat<'a> {
     type E = (); 
 
-    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         let f = tokens.first().ok_or(())?;
         let ft = &f.token_type; 
         match ft {

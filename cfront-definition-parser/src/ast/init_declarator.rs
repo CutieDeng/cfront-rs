@@ -47,7 +47,11 @@ impl <'a> Parser<'a> for InitDeclarator<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        #[cfg(debug_assertions)]
+        eprintln!("InitDeclarator");
         let (declarator, r) = Declarator::parse(stack, tokens)?; 
+        #[cfg(debug_assertions)]
+        eprintln!("InitDeclarator-declarator: {declarator:?}");
         let declarator = Box::new(Ast(AstType::Declarator(declarator), &tokens[..tokens.len() - r.len()])); 
         let mut initializer = None; 
         let mut rst = r; 
@@ -56,7 +60,7 @@ impl <'a> Parser<'a> for InitDeclarator<'a> {
             let eq = &eq.token_type; 
             let TokenType::Operator("=") = eq else { break 'eq }; 
             let r2 = &r[1..];
-            let Ok((init, r3)) = Initializer::parse(stack, &r[1..]) else { break 'eq }; 
+            let Ok((init, r3)) = Initializer::parse(stack, r2) else { break 'eq }; 
             initializer = Some(Box::new(Ast(AstType::Initializer(init), &r2[..r2.len() - r3.len()])));
             rst = r3; 
         }
