@@ -11,7 +11,7 @@ pub struct ArgumentExpList<'a> (pub Vec<Ast<'a>>);
 impl <'a> Parser<'a> for ArgumentExpList<'a> {
     type E = (); 
 
-    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         let mut ans = Vec::new(); 
         let mut rst = tokens; 
         let mut start = false; 

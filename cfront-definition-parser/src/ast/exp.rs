@@ -17,16 +17,20 @@ impl <'a> Parser<'a> for Exp<'a> {
         loop {
             let (p, r) = AssignmentExp::parse(stack, rst)?;
             let p = Ast(AstType::AssignmentExp(p), &rst[..rst.len() - r.len()]); 
+            // Bug fix log: set rst now, but not lately ~ 
+            rst = r; 
             ans.push(p); 
             let Some(f) = r.first() else { break }; 
             let ft = &f.token_type; 
             match ft {
                 TokenType::Operator(",") => {
-                    rst = &r[1..]; 
+                    rst = &rst[1..];
                 }
                 _ => break, 
             }
         } 
+        // #[cfg(debug_assertions)]
+        // dbg!(&ans, rst);
         Ok((Self(ans), rst)) 
     }
 }
@@ -47,6 +51,8 @@ impl <'a> Parser<'a> for AssignmentExp<'a> {
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         let c = ConditionalExp::parse(stack, tokens); 
         let a = AssignmentExp::parse_by_assign(stack, tokens); 
+        // #[cfg(debug_assertions)]
+        // dbg!(&c, &a, tokens);
         let select_c; 
         match (&c, &a) {
             (Ok((_, l1)), Ok((_, l2))) => select_c = l1.len() < l2.len(), 
@@ -170,7 +176,11 @@ impl <'a> Parser<'a> for UnaryExp<'a> {
             }
             _ => (),
         }
+        // #[cfg(debug_assertions)]
+        // dbg!(tokens);
         let (p, r) = PostfixExp::parse(stack, tokens)?; 
+        // #[cfg(debug_assertions)]
+        // dbg!(r);
         let p = Ast(AstType::PostfixExp(p), &tokens[..tokens.len() - r.len()]); 
         Ok((Self::PostfixExp(Box::new(p)), r)) 
     }
@@ -342,6 +352,8 @@ impl <'a> Parser<'a> for CastExp<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        // #[cfg(debug_assertions)]
+        // dbg!(tokens);
         // try both two paths. 
         let u = UnaryExp::parse(stack, tokens);
         let u2 = CastExp::type_cast_parse(stack, tokens); 
@@ -405,29 +417,37 @@ impl <'a> Parser<'a> for PostfixExp<'a> {
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         let mut this; 
         let mut rst = tokens; 
+        // #[cfg(debug_assertions)]
+        // dbg!(rst);
         let (p, r) = PrimaryExp::parse(stack, tokens)?; 
         let p = Ast(AstType::PrimaryExp(p), &rst[..rst.len() - r.len()]); 
         this = Self::PrimaryExp(Box::new(p));  
         rst = r; 
         loop {
+            // #[cfg(debug_assertions)]
+            // dbg!(rst);
             let f = rst.first().ok_or(())?; 
             let ft = &f.token_type; 
+            let r0 = &rst[1..]; 
             match ft {
                 TokenType::Parenthesis { is_left: true } => {
-                    let a = ArgumentExpList::parse(stack, rst); 
+                    let a = ArgumentExpList::parse(stack, r0); 
                     let v; 
+                    let t; 
                     match a {
                         Ok((l, r)) => {
                             v = l.0; 
-                            rst = r; 
+                            t = r; 
                         }
                         Err(_) => {
                             v = Vec::new();
+                            t = r0; 
                         }
                     }
-                    let f = rst.first().ok_or(())?; 
+                    let f = t.first().ok_or(())?; 
                     let ft = &f.token_type; 
                     let TokenType::Parenthesis { is_left: false } = ft else { break }; 
+                    rst = &t[1..]; 
                     let p = Ast(AstType::PostfixExp(this), &tokens[..tokens.len() - rst.len()]); 
                     this = Self::FunctionCall { postfix_exp: Box::new(p), args: v }; 
                 }

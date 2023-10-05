@@ -47,11 +47,11 @@ impl <'a> Parser<'a> for InitDeclarator<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        #[cfg(debug_assertions)]
-        eprintln!("InitDeclarator");
+        // #[cfg(debug_assertions)]
+        // eprintln!("InitDeclarator");
         let (declarator, r) = Declarator::parse(stack, tokens)?; 
-        #[cfg(debug_assertions)]
-        eprintln!("InitDeclarator-declarator: {declarator:?}");
+        // #[cfg(debug_assertions)]
+        // eprintln!("InitDeclarator-declarator: {declarator:?}");
         let declarator = Box::new(Ast(AstType::Declarator(declarator), &tokens[..tokens.len() - r.len()])); 
         let mut initializer = None; 
         let mut rst = r; 

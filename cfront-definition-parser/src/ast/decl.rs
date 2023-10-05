@@ -18,8 +18,8 @@ impl <'a> Parser<'a> for Decl<'a> {
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         let (p, r) = DeclSpecs::parse(stack, tokens)?;
         let p2 = InitDeclaratorList::parse(stack, r);
-        #[cfg(debug_assertions)]
-        dbg!((&p, r), &p2);
+        // #[cfg(debug_assertions)]
+        // dbg!((&p, r), &p2);
         let p3; 
         let r2; 
         match p2 {

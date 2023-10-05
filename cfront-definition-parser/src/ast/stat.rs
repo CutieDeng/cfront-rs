@@ -71,7 +71,10 @@ impl <'a> Parser<'a> for Stat<'a> {
             } 
             _ => (),
         }
-        let (exp, r) = ExpStat::parse(stack, tokens)?; 
+        let exp = ExpStat::parse(stack, tokens); 
+        // #[cfg(debug_assertions)]
+        // dbg!(&exp, tokens);
+        let (exp, r) = exp?;
         let exp = Box::new(Ast(AstType::ExpStat(exp), &tokens[..tokens.len() - r.len()])); 
         return Ok((Stat(StatTag::ExpStat, exp), r)); 
     }
@@ -146,7 +149,10 @@ impl <'a> Parser<'a> for ExpStat<'a> {
         if let TokenType::Operator(";") = ft {
             return Ok((ExpStat(None), &tokens[1..])); 
         } 
-        let (p, r) = Exp::parse(stack, tokens)?; 
+        let p = Exp::parse(stack, tokens);
+        // #[cfg(debug_assertions)]
+        // dbg!(&p, tokens);
+        let (p, r) = p?;
         let f = r.first().ok_or(())?;
         let ft = &f.token_type; 
         let TokenType::Operator(";") = ft else { return Err(()) }; 
@@ -174,16 +180,17 @@ impl <'a> Parser<'a> for CompoundStat<'a> {
         let mut decl_list = None; 
         let mut stat_list = None; 
         let d = DeclList::parse(stack, rst); 
-        #[cfg(debug_assertions)]
-        { _ = d.as_ref().map(|(r, _)| { dbg!(r); }) }
+        // #[cfg(debug_assertions)]
+        // dbg!(&d, &rst);
         if let Ok((d, r2)) = d {
             let d = Box::new(Ast(AstType::DeclList(d), &rst[..rst.len() - r2.len()])); 
             rst = r2; 
             decl_list = Some(d);  
         }
+        // FIX: fix the stat recognition problem 
         let s = StatList::parse(stack, rst); 
-        #[cfg(debug_assertions)]
-        dbg!(s.as_ref().map(|(a, _)| a).ok());
+        // #[cfg(debug_assertions)]
+        // dbg!(&s, &rst);
         if let Ok((s, r2)) = s {
             let s = Box::new(Ast(AstType::StatList(s), &rst[..rst.len() - r2.len()])); 
             rst = r2; 
@@ -207,6 +214,8 @@ impl <'a> Parser<'a> for StatList<'a> {
         let mut ans = Vec::new(); 
         loop {
             let parse = Stat::parse(stack, rst); 
+            // #[cfg(debug_assertions)]
+            // dbg!(&parse, rst);
             let Ok(parse) = parse else { break }; 
             let (parse, rst2) = parse; 
             ans.push(Ast(AstType::Stat(parse), &rst[..rst.len() - rst2.len()])); 
