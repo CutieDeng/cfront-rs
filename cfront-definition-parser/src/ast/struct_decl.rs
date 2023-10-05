@@ -1,6 +1,6 @@
-use cfront_definition::token::Token;
+use cfront_definition::token::{Token, TokenType};
 
-use crate::{Parser, ast::{decl_specs::{TypeQualifier, TypeSpec}, AstType}};
+use crate::{Parser, ast::{decl_specs::{TypeQualifier, TypeSpec}, AstType, declarator::{self, Declarator}, const_exp::ConstExp}};
 
 use super::Ast;
 
@@ -55,13 +55,34 @@ impl <'a> Parser<'a> for SpecQualifierList<'a> {
 
 // struct_declarator_list
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct StructDeclaratorList<'a> ( &'a ! ); 
+pub struct StructDeclaratorList<'a> {
+    pub struct_declarators: Vec<Ast<'a>>,
+}
 
 impl <'a> Parser<'a> for StructDeclaratorList<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let mut rst = tokens; 
+        let mut ans = Vec::new(); 
+        loop {
+            let p = StructDeclarator::parse(stack, rst); 
+            match p {
+                Ok((p, r)) => {
+                    let len = rst.len() - r.len(); 
+                    ans.push(Ast(AstType::StructDeclarator(p), &rst[..len])); 
+                    rst = r; 
+                } 
+                Err(_) => return Err(()), 
+            }
+            let comma = rst.first(); 
+            if let Some(Token { token_type: TokenType::Operator(","), ..}) = comma {
+                rst = &rst[1..]; 
+            } else {
+                break ; 
+            } 
+        } 
+        return Ok((StructDeclaratorList { struct_declarators: ans }, rst)); 
     }
 } 
 
@@ -69,4 +90,44 @@ impl <'a> Parser<'a> for StructDeclaratorList<'a> {
 pub struct StructDeclarator <'a> {
     pub declarator: Option<Box<Ast<'a>>>,
     pub const_expr: Option<Box<Ast<'a>>>, 
+}
+
+impl <'a> Parser<'a> for StructDeclarator<'a> {
+    type E = (); 
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        let mut rst = tokens; 
+        let declarator = Declarator::parse(stack, rst); 
+        let d; 
+        match declarator {
+            Ok((declarator, r)) => {
+                d = Some(Box::new(Ast(AstType::Declarator(declarator), &rst[..rst.len() - r.len()]))); 
+                rst = r; 
+            }, 
+            Err(_) => d = None, 
+        } 
+        let colon = rst.first(); 
+        if let Some(Token { token_type: TokenType::Operator(":"), ..}) = colon {
+            rst = &rst[1..]; 
+        } else {
+            if d.is_none() {
+                return Err(()); 
+            }
+            return Ok((StructDeclarator { declarator: d, const_expr: None }, rst)); 
+        }
+        let const_expr = ConstExp::parse(stack, rst);
+        let c; 
+        match const_expr {
+            Ok((const_expr, r)) => {
+                c = Some(Box::new(Ast(AstType::ConstExp(const_expr), &rst[..rst.len() - r.len()]))); 
+                rst = r; 
+            }, 
+            Err(_) => c = None, 
+        } 
+        if d.is_some() || c.is_some() {
+            return Ok((StructDeclarator { declarator: d, const_expr: c }, rst)); 
+        } else {
+            return Err(()); 
+        } 
+    }
 }
