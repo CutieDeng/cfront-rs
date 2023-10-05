@@ -1,6 +1,7 @@
 use cfront_definition::token::{Token, TokenType};
 
-use crate::{Parser, ast::{exp::AssignmentExp, stat, AstType}};
+use crate::ast::{exp::AssignmentExp, AstType};
+use crate::Parser;
 
 use super::Ast;
 

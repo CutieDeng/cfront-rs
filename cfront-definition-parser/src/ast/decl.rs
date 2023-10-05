@@ -1,5 +1,7 @@
-use cfront_definition::token::Token;
+use cfront_definition::token::{Token, TokenType};
 
+use crate::ast::init_declarator::InitDeclaratorList;
+use crate::ast::decl_specs::DeclSpecs;
 use crate::Parser;
 
 use super::{Ast, AstType};
@@ -14,7 +16,29 @@ impl <'a> Parser<'a> for Decl<'a> {
     type E = ();
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let (p, r) = DeclSpecs::parse(stack, tokens)?;
+        let p2 = InitDeclaratorList::parse(stack, r);
+        let p3; 
+        let r2; 
+        match p2 {
+            Ok((p2, r)) => {
+                p3 = Some(p2); 
+                r2 = r; 
+            }
+            Err(_) => {
+                p3 = None; 
+                r2 = r; 
+            }
+        }
+        let f = r2.first().ok_or(())?; 
+        let Token { token_type: TokenType::Operator(";"), .. } = f else { return Err(()) };  
+        let decl_specs = Box::new(Ast(AstType::DeclSpecs(p), &tokens[..tokens.len() - r.len()])); 
+        let init_declarator_list = p3.map(|p| Box::new(Ast(AstType::InitDeclaratorList(p), &r[..r.len() - r2.len()])));  
+        let ans = Decl {
+            decl_specs, 
+            init_declarator_list, 
+        }; 
+        return Ok((ans, &r2[1..])); 
     } 
 }
 

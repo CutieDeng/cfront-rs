@@ -26,7 +26,7 @@ use std::marker::PhantomData;
 
 use cfront_definition::token::Token;
 
-use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::{EnumSpec, Enumerator, EnumeratorList}, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList, SpecQualifierList, StructDeclarator, StructDeclaratorList, StructDecl}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::{Decl, DeclList}, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList, const_exp::ConstExp, abstract_declarator::{AbstractDeclarator, DirectAbstractDeclarator}, init_declarator::InitDeclarator, initializer::{Initializer, InitializerList}, stat::{Stat, StatList, CompoundStat, SelectionStat, IterationStat, LabeledStat, JumpStat, ExpStat}, exp::{Exp, BiExp, CastExp, UnaryExp, PostfixExp, PrimaryExp, AssignmentExp, ConditionalExp}, type_name::TypeName};
+use self::{translation_unit::TranslationUnit, external_decl::ExternalDecl, r#struct::StructOrUnionSpec, r#enum::{EnumSpec, Enumerator, EnumeratorList}, decl_specs::{StorageClassSpec, TypeSpec, TypeQualifier, DeclSpecs, DeclSpec}, struct_decl::{StructDeclList, SpecQualifierList, StructDeclarator, StructDeclaratorList, StructDecl}, pointer::Pointer, type_qualifier_list::TypeQualifierList, decl::{Decl, DeclList}, param_list::ParamList, declarator::{Declarator, DirectDeclarator}, id_list::IdList, param_decl::ParamDecl, param_type_list::ParamTypeList, const_exp::ConstExp, abstract_declarator::{AbstractDeclarator, DirectAbstractDeclarator}, init_declarator::{InitDeclarator, InitDeclaratorList}, initializer::{Initializer, InitializerList}, stat::{Stat, StatList, CompoundStat, SelectionStat, IterationStat, LabeledStat, JumpStat, ExpStat}, exp::{Exp, BiExp, CastExp, UnaryExp, PostfixExp, PrimaryExp, AssignmentExp, ConditionalExp}, type_name::TypeName, function_definition::FunctionDefinition};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'a> 
@@ -37,6 +37,7 @@ pub enum AstType <'a> {
     NoImpl(PhantomData<&'a !>), 
     TranslationUnit(TranslationUnit<'a>),
     ExternalDecl(ExternalDecl<'a>),
+    FunctionDefinition(FunctionDefinition<'a>),
     StructOrUnionSpec(StructOrUnionSpec<'a>), 
     EnumSpec(EnumSpec<'a>),
     Enumerator(Enumerator<'a>),
@@ -65,6 +66,7 @@ pub enum AstType <'a> {
     InitDeclarator(InitDeclarator<'a>), 
     Initializer(Initializer<'a>),
     InitializerList(InitializerList<'a>),
+    InitDeclaratorList(InitDeclaratorList<'a>), 
     SpecQualifierList(SpecQualifierList<'a>),
     AssignmentExp(AssignmentExp<'a>), 
     ConditionalExp(ConditionalExp<'a>),

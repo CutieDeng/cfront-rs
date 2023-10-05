@@ -1,8 +1,8 @@
 use cfront_definition::token::{Token, TokenType};
 
-use crate::{Parser, ast::AstType};
+use crate::{Parser, ast::{AstType, const_exp::ConstExp}};
 
-use super::{Ast, id_list::IdList, param_type_list::ParamTypeList};
+use super::{Ast, id_list::IdList, param_type_list::ParamTypeList, pointer::Pointer};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Declarator<'a> {
@@ -13,23 +13,23 @@ pub struct Declarator<'a> {
 impl <'a> Parser<'a> for Declarator<'a> {
     type E = (); 
 
-    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [cfront_definition::token::Token<'a>]) -> Result<(Self, &'a [cfront_definition::token::Token<'a>]), <Self as Parser<'a>>::E> {
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
         let first = tokens.first().ok_or(())?;
         let mut rst = tokens;
         let pointer; 
         if first.token_type == TokenType::Operator("*") {
-            let Ok(parse) = Declarator::parse(stack, rst) else { return Err(()); }; 
+            let Ok(parse) = Pointer::parse(stack, rst) else { return Err(()); }; 
             let r2 = parse.1; 
             rst = r2; 
             let len = tokens.len() - r2.len(); 
-            let t = Ast(AstType::Declarator(parse.0), &tokens[..len]); 
+            let t = Ast(AstType::Pointer(parse.0), &tokens[..len]); 
             pointer = Some(Box::new(t)); 
         } else {
             pointer = None; 
         }
         let dd = DirectDeclarator::parse(stack, rst)?;
         let len = rst.len() - dd.1.len(); 
-        let t = Ast(AstType::DirectDeclarator(dd.0), &tokens[..len]); 
+        let t = Ast(AstType::DirectDeclarator(dd.0), &rst[..len]);
         let declarator = Declarator {
             pointer, 
             direct_declarator: Box::new(t), 
@@ -99,7 +99,17 @@ impl <'a> Parser<'a> for DirectDeclarator<'a> {
                                     this = DirectDeclarator::EmptyBracket(Box::new(t)); 
                                 }
                                 _ => {
-                                    unimplemented!()
+                                    let p = ConstExp::parse(stack, rst);
+                                    let Ok((p, r)) = p else { break }; 
+                                    let Some(f) = r.first() else { break }; 
+                                    let ftype = &f.token_type; 
+                                    let TokenType::Brace { is_left: false } = ftype else { break }; 
+                                    let len = tokens.len() - rst.len(); 
+                                    let t = Ast(AstType::DirectDeclarator(this), &tokens[..len]); 
+                                    let len = rst.len() - r.len(); 
+                                    let t2 = Ast(AstType::ConstExp(p), &rst[..len]); 
+                                    this = DirectDeclarator::Bracket { direct_declarator: Box::new(t), constant_expr: Box::new(t2) }; 
+                                    rst = &r[1..];
                                 }
                             }
                         }

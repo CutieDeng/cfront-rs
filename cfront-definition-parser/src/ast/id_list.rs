@@ -14,6 +14,7 @@ impl <'a> Parser<'a> for IdList<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        _ = stack; 
         let mut ans = Vec::new(); 
         let mut rst = tokens; 
         let mut trailling = false;  
