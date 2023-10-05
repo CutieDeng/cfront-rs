@@ -1,6 +1,6 @@
 use cfront_definition::token::{Token, TokenType};
 
-use crate::{Parser, ast::{decl_specs::{TypeQualifier, TypeSpec}, AstType, declarator::{self, Declarator}, const_exp::ConstExp}};
+use crate::{Parser, ast::{decl_specs::{TypeQualifier, TypeSpec}, AstType, declarator::Declarator, const_exp::ConstExp}};
 
 use super::Ast;
 
@@ -8,10 +8,50 @@ use super::Ast;
 pub struct StructDeclList <'a> (pub Vec<Ast<'a>>); 
 
 impl <'a> Parser<'a> for StructDeclList<'a> {
+    type E = ();
+
+    fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
+        let mut rst = tokens; 
+        let mut ans = Vec::new();
+        loop {
+            let p = StructDecl::parse(stack, rst); 
+            match p {
+                Ok((p, r)) => {
+                    let len = rst.len() - r.len(); 
+                    ans.push(Ast(AstType::StructDecl(p), &rst[..len])); 
+                    rst = r; 
+                } 
+                Err(_) => break, 
+            } 
+        }
+        if ans.is_empty() {
+            return Err(()); 
+        } else {
+            return Ok((StructDeclList(ans), rst)); 
+        }
+    }
+}
+
+
+#[derive(Debug, PartialEq, Eq, Clone)] 
+pub struct StructDecl<'a> {
+    pub spec_qualifier_list: Box<Ast<'a>>,
+    pub struct_declarator_list: Box<Ast<'a>>, 
+}
+
+impl <'a> Parser<'a> for StructDecl<'a> {
     type E = (); 
 
     fn parse (stack: &mut Vec<Ast<'a>>, tokens: &'a [Token<'a>]) -> Result<(Self, &'a [Token<'a>]), <Self as Parser<'a>>::E> {
-        todo!()
+        let (sql, r1) = SpecQualifierList::parse(stack, tokens)?; 
+        let (sdl, r2 ) = StructDeclaratorList::parse(stack, r1)?;
+        let f = r2.first().ok_or(())?; 
+        let Token { token_type: TokenType::Operator(";"), .. } = f else { return Err(()) }; 
+        let len = tokens.len() - r1.len(); 
+        let sql = Ast(AstType::SpecQualifierList(sql), &tokens[..len]); 
+        let len = r1.len() - r2.len(); 
+        let sdl = Ast(AstType::StructDeclaratorList(sdl), &r1[..len]); 
+        return Ok((StructDecl { spec_qualifier_list: Box::new(sql), struct_declarator_list: Box::new(sdl) }, r2));  
     }
 }
 
