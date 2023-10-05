@@ -313,9 +313,13 @@ impl <'a> BiExp<'a> {
             }
         }
         if ans.len() == 1 {
-            let pop = ans.pop().unwrap().0;
+            let (pop, op) = ans.pop().unwrap();
             let p = match pop.0 {
                 AstType::BiExp(p) => p, 
+                AstType::CastExp(_) => {
+                    let exps = vec![(pop, op)];
+                    Self { level, exps } 
+                }
                 _ => unreachable!(), 
             }; 
             Ok((p, rst))

@@ -54,6 +54,13 @@ impl <'a> Parser<'a> for TypeSpec<'a> {
                 return Ok((TypeSpec::EnumSpec(Box::new(node)), rst));  
             }
             | TokenType::Identifier(_) => {
+                // preview next to check is '(' or '[' or not. if yes, then drop it. 
+                let rs = tokens.get(1);
+                if let Some(Token { token_type: TokenType::Parenthesis { is_left: true }, .. }) = rs {
+                    return Err(()); 
+                } else if let Some(Token { token_type: TokenType::Bracket { is_left: true }, .. }) = rs {
+                    return Err(()); 
+                }
                 let node = TypeSpec::TypedefName(first.clone()); 
                 return Ok((node, &tokens[1..])); 
             }
@@ -144,10 +151,10 @@ impl <'a> Parser<'a> for DeclSpec<'a> {
                     return Ok((ans, rst)); 
                 } 
             Token { token_type: TokenType::Identifier(_), .. } => {
-                let node = TypeSpec::TypedefName(first.clone()); 
-                let node = Ast(AstType::TypeSpec(node), &tokens[..1]); 
+                let t = TypeSpec::parse(stack, tokens)?;
+                let node = Ast(AstType::TypeSpec(t.0), &tokens[..tokens.len() - t.1.len()]); 
                 let ans = DeclSpec::TypeSpec(Box::new(node)); 
-                return Ok((ans, &tokens[1..])); 
+                return Ok((ans, t.1)); 
             }
             _ => return Err(()),
         }

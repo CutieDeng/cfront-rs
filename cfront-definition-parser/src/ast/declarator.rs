@@ -18,7 +18,7 @@ impl <'a> Parser<'a> for Declarator<'a> {
         let mut rst = tokens;
         let pointer; 
         if first.token_type == TokenType::Operator("*") {
-            let Ok(parse) = Pointer::parse(stack, rst) else { return Err(()); }; 
+            let parse = Pointer::parse(stack, rst).unwrap(); 
             let r2 = parse.1; 
             rst = r2; 
             let len = tokens.len() - r2.len(); 
@@ -28,6 +28,8 @@ impl <'a> Parser<'a> for Declarator<'a> {
             pointer = None; 
         }
         let dd = DirectDeclarator::parse(stack, rst)?;
+        #[cfg(debug_assertions)]
+        dbg!(&dd); 
         let len = rst.len() - dd.1.len(); 
         let t = Ast(AstType::DirectDeclarator(dd.0), &rst[..len]);
         let declarator = Declarator {

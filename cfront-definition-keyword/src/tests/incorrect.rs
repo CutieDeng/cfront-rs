@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use crate::Keyword;
 use crate::tests::process;
 
 #[test]

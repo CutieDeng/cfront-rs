@@ -8,7 +8,7 @@ fn main() {
     stdin().read_line(&mut content).unwrap(); 
     let tokens = cfront_definition_lexer::analyze(&content); 
     let expressions = cfront_definition_parser::parser(&tokens); 
-    // println!("{:#?}", expressions);
+    println!("{:#?}", expressions);
     match expressions {
         Ok(_) => {
             // if end.is_empty() {
