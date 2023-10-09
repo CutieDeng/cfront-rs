@@ -96,6 +96,8 @@ pub fn analyze(input: &str) -> Vec<Token<'_>> {
                     } else if *c == '\n' {
                         ans.push(Token { token_type: TokenType::CharLiteral(&input[l+1..*i], false), line, column, }); 
                         quoting_state = QuotingState::None; 
+                    } else if *c == '\\' {
+                        just_ignore = 1; 
                     }
                     break 'scope; 
                 }
@@ -106,7 +108,9 @@ pub fn analyze(input: &str) -> Vec<Token<'_>> {
                     } else if *c == '\n' {
                         ans.push(Token { token_type: TokenType::StringLiteral(&input[l+1..*i], false), line, column, }); 
                         quoting_state = QuotingState::None; 
-                    } 
+                    } else if *c == '\\' {
+                        just_ignore = 1; 
+                    }
                     break 'scope; 
                 }
             }
